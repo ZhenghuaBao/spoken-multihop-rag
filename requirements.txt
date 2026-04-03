@@ -1,0 +1,31 @@
+# Core
+numpy
+torch
+openai
+tqdm
+
+# ASR
+openai-whisper
+librosa
+
+# TTS (dataset generation)
+edge-tts
+
+# Retrieval
+langchain-core
+langchain-community
+langchain-openai
+faiss-cpu
+
+# HippoRAG (optional)
+hipporag
+
+# Dataset
+datasets
+
+# Entity correction
+rapidfuzz
+
+# Dev
+pre-commit
+ruff
