@@ -6,7 +6,8 @@
   HippoRAG    |     F     |     C     |     D      |
 
 Usage:
-    python experiments/run_2x2.py --cells E F
+    python experiments/run_2x2.py --cells E F              # Oracle only
+    python experiments/run_2x2.py --cells A C --accent us  # ASR top-1, US accent
 """
 
 import json
@@ -23,7 +24,7 @@ sys.path.insert(0, str(_ROOT))
 sys.path.insert(0, str(_PROJECT_ROOT))
 
 from retrieval.naive_rag import NaiveRAG  # noqa: E402
-from evaluation.metrics import exact_match, f1_score  # noqa: E402
+from evaluation.metrics import exact_match, f1_score, word_error_rate  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -66,6 +67,21 @@ def _sanitize_text(text: str) -> str:
     text = text.encode("utf-8", errors="ignore").decode("utf-8")
     text = "".join(c for c in text if c.isprintable() or c == " ")
     return text.strip()
+
+
+def prepare_top1_transcriptions(asr_data: List[Dict], accent: str) -> List[Dict]:
+    """Extract top-1 transcriptions for a specific accent."""
+    results = []
+    for entry in asr_data:
+        acc = entry["accents"][accent]
+        results.append(
+            {
+                "id": entry["id"],
+                "original_text": _sanitize_text(entry["question"]),
+                "transcribed_text": _sanitize_text(acc["top1"]),
+            }
+        )
+    return results
 
 
 def prepare_oracle_transcriptions(asr_data: List[Dict]) -> List[Dict]:
@@ -256,6 +272,114 @@ def run_cell_F(
 
 
 # ---------------------------------------------------------------------------
+# Experiment cells: ASR top-1
+# ---------------------------------------------------------------------------
+
+
+def run_cell_A(
+    transcriptions_top1: List[Dict],
+    ground_truth: Dict,
+    naive_rag: NaiveRAG,
+    top_k: int = 10,
+    llm_model: str = "gpt-4o-mini",
+) -> List[Dict]:
+    """Cell A: Naive RAG + ASR top-1."""
+    print("\n" + "=" * 60)
+    print("CELL A: Naive RAG + ASR top-1")
+    print("=" * 60)
+
+    results = []
+    for i, t in enumerate(transcriptions_top1):
+        query = t["transcribed_text"]
+        qid = t["id"]
+        gt = ground_truth.get(qid, {}).get("answer", "")
+
+        ret = naive_rag.retrieve_top1(query, top_k=top_k)
+
+        context = "\n\n".join(ret["docs"][:top_k])
+        gen = generate_answer_openai(context, query, model=llm_model)
+
+        em = exact_match(gen["answer"], gt)
+        f1 = f1_score(gen["answer"], gt)
+        wer = word_error_rate(query, t["original_text"])
+
+        results.append(
+            {
+                "id": qid,
+                "query": query,
+                "original": t["original_text"],
+                "answer": gen["answer"],
+                "ground_truth": gt,
+                "em": em,
+                "f1": f1,
+                "wer": wer,
+                "retrieval_time": ret["retrieval_time"],
+                "generation_time": gen["generation_time"],
+            }
+        )
+
+        if (i + 1) % 20 == 0 or i == 0:
+            avg_f1 = sum(r["f1"] for r in results) / len(results)
+            avg_em = sum(r["em"] for r in results) / len(results)
+            print(
+                f"  [{i + 1}/{len(transcriptions_top1)}] F1={avg_f1:.3f} EM={avg_em:.3f}"
+            )
+
+    return results
+
+
+def run_cell_C(
+    transcriptions_top1: List[Dict],
+    ground_truth: Dict,
+    hipporag,
+    llm_model: str = "gpt-4o-mini",
+) -> List[Dict]:
+    """Cell C: HippoRAG + ASR top-1."""
+    print("\n" + "=" * 60)
+    print("CELL C: HippoRAG + ASR top-1")
+    print("=" * 60)
+
+    results = []
+    for i, t in enumerate(transcriptions_top1):
+        query = t["transcribed_text"]
+        qid = t["id"]
+        gt = ground_truth.get(qid, {}).get("answer", "")
+
+        ret = hipporag.retrieve_top1(query)
+
+        context = "\n\n".join(ret["docs"])
+        gen = generate_answer_openai(context, query, model=llm_model)
+
+        em = exact_match(gen["answer"], gt)
+        f1 = f1_score(gen["answer"], gt)
+        wer = word_error_rate(query, t["original_text"])
+
+        results.append(
+            {
+                "id": qid,
+                "query": query,
+                "original": t["original_text"],
+                "answer": gen["answer"],
+                "ground_truth": gt,
+                "em": em,
+                "f1": f1,
+                "wer": wer,
+                "retrieval_time": ret["retrieval_time"],
+                "generation_time": gen["generation_time"],
+            }
+        )
+
+        if (i + 1) % 20 == 0 or i == 0:
+            avg_f1 = sum(r["f1"] for r in results) / len(results)
+            avg_em = sum(r["em"] for r in results) / len(results)
+            print(
+                f"  [{i + 1}/{len(transcriptions_top1)}] F1={avg_f1:.3f} EM={avg_em:.3f}"
+            )
+
+    return results
+
+
+# ---------------------------------------------------------------------------
 # Summary & output
 # ---------------------------------------------------------------------------
 
@@ -277,16 +401,33 @@ def summarize_cell(name: str, results: List[Dict]) -> Dict:
     }
 
 
-def print_results_table(summaries: Dict[str, Dict]) -> None:
+def print_results_table(summaries: Dict[str, Dict], accent: str = "") -> None:
     """Print the results table."""
+    label = f" [{accent.upper()}]" if accent else ""
     print("\n" + "=" * 60)
-    print("RESULTS")
+    print(f"RESULTS{label}")
     print("=" * 60)
 
-    for cell_name in ["E", "F"]:
+    for cell_name in ["E", "F", "A", "C"]:
         s = summaries.get(cell_name)
         if s and s["n"] > 0:
-            print(f"  Cell {cell_name}: F1={s['f1']:.3f} EM={s['em']:.3f} (n={s['n']})")
+            wer_str = f" WER={s['wer']:.4f}" if s["wer"] > 0 else ""
+            print(
+                f"  Cell {cell_name}: F1={s['f1']:.3f} EM={s['em']:.3f}{wer_str} (n={s['n']})"
+            )
+
+    # Degradation comparisons
+    e, a, c = summaries.get("E", {}), summaries.get("A", {}), summaries.get("C", {})
+    f_cell = summaries.get("F", {})
+    if e.get("n") and a.get("n"):
+        diff = a["f1"] - e["f1"]
+        print(f"  A vs E (Naive ASR vs Oracle):       F1 diff = {diff:+.3f}")
+    if f_cell.get("n") and c.get("n"):
+        diff = c["f1"] - f_cell["f1"]
+        print(f"  C vs F (HippoRAG ASR vs Oracle):    F1 diff = {diff:+.3f}")
+    if a.get("n") and c.get("n"):
+        diff = c["f1"] - a["f1"]
+        print(f"  C vs A (HippoRAG vs Naive, top-1):  F1 diff = {diff:+.3f}")
 
     print("=" * 60)
 
@@ -322,10 +463,16 @@ def main():
 
     # Experiment config
     parser.add_argument(
+        "--accent",
+        type=str,
+        default="us",
+        help="Which accent to run: us, in, ph, ng",
+    )
+    parser.add_argument(
         "--cells",
         nargs="+",
         default=["E", "F"],
-        help="Which cells to run (e.g., --cells E F)",
+        help="Which cells to run (e.g., --cells E F A C)",
     )
     parser.add_argument("--llm-model", type=str, default="gpt-4o-mini")
     parser.add_argument("--top-k", type=int, default=10)
@@ -353,12 +500,13 @@ def main():
     args = parser.parse_args()
 
     cells_to_run = set(c.upper() for c in args.cells)
-    need_naive = bool(cells_to_run & {"E"})
-    need_hipporag = bool(cells_to_run & {"F"})
+    need_naive = bool(cells_to_run & {"A", "E"})
+    need_hipporag = bool(cells_to_run & {"C", "F"})
 
     print("=" * 60)
-    print("SPOKEN MULTI-HOP QA: ORACLE BASELINE")
+    print("SPOKEN MULTI-HOP QA: 2x2 EXPERIMENT")
     print("=" * 60)
+    print(f"Accent: {args.accent}")
     print(f"Cells: {sorted(cells_to_run)}")
     print(f"LLM: {args.llm_model}")
 
@@ -371,7 +519,14 @@ def main():
         asr_data = asr_data[: args.sample]
         print(f"  Using first {args.sample} questions only")
 
-    transcriptions_oracle = prepare_oracle_transcriptions(asr_data)
+    # Prepare transcriptions
+    transcriptions_oracle = None
+    transcriptions_top1 = None
+
+    if cells_to_run & {"E", "F"}:
+        transcriptions_oracle = prepare_oracle_transcriptions(asr_data)
+    if cells_to_run & {"A", "C"}:
+        transcriptions_top1 = prepare_top1_transcriptions(asr_data, args.accent)
 
     # --- Load indices ---
     naive_rag = None
@@ -418,12 +573,31 @@ def main():
         all_results["F"] = results
         summaries["F"] = summarize_cell("F", results)
 
-    print_results_table(summaries)
+    if "A" in cells_to_run:
+        results = run_cell_A(
+            transcriptions_top1,
+            ground_truth,
+            naive_rag,
+            top_k=args.top_k,
+            llm_model=args.llm_model,
+        )
+        all_results["A"] = results
+        summaries["A"] = summarize_cell("A", results)
+
+    if "C" in cells_to_run:
+        results = run_cell_C(
+            transcriptions_top1, ground_truth, hipporag, llm_model=args.llm_model
+        )
+        all_results["C"] = results
+        summaries["C"] = summarize_cell("C", results)
+
+    print_results_table(summaries, accent=args.accent)
 
     # --- Save ---
     timestamp = time.strftime("%Y%m%d_%H%M%S")
+    accent_tag = args.accent
     output_path = args.output or str(
-        _ROOT / f"results/experiment_oracle_{timestamp}.json"
+        _ROOT / f"results/experiment_{accent_tag}_{timestamp}.json"
     )
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
@@ -431,6 +605,7 @@ def main():
         json.dump(
             {
                 "config": {
+                    "accent": args.accent,
                     "cells": sorted(cells_to_run),
                     "llm_model": args.llm_model,
                     "top_k": args.top_k,
