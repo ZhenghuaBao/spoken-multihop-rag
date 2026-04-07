@@ -3,12 +3,15 @@
 
               | Oracle    | ASR top-1 | ASR N-best |
   Naive RAG   |     E     |     A     |     B      |
+  IRCoT+Naive |     -     |     G     |     -      |
   HippoRAG    |     F     |     C     |     D      |
+  IRCoT+Hippo |     -     |     H     |     -      |
 
 Usage:
     python experiments/run_2x2.py --cells E F              # Oracle only
     python experiments/run_2x2.py --cells A C --accent us  # ASR top-1, US accent
     python experiments/run_2x2.py --cells A B C D --accent ng  # All Naive/HippoRAG cells
+    python experiments/run_2x2.py --cells G H --accent us  # IRCoT, US accent
 """
 
 import json
@@ -553,6 +556,253 @@ def run_cell_D(
 
 
 # ---------------------------------------------------------------------------
+# IRCoT (Interleaving Retrieval with Chain-of-Thought)
+# ---------------------------------------------------------------------------
+
+IRCOT_COT_PROMPT = """You are a reasoning assistant that helps answer multi-hop questions step by step.
+
+Question: {question}
+
+Retrieved Information:
+{context}
+
+Reasoning so far:
+{cot_so_far}
+
+Based on the retrieved information, write ONE brief reasoning sentence that makes progress toward answering the question. Then, if more information is needed, suggest a specific search query to retrieve the missing information.
+
+Format your response EXACTLY as:
+Reasoning: <one sentence of reasoning>
+Search: <next search query, or DONE if you have enough information to answer>"""
+
+
+def run_ircot_loop(
+    query: str,
+    retrieve_fn,
+    llm_model: str = "gpt-4o-mini",
+    max_steps: int = 3,
+    top_k: int = 5,
+) -> Dict:
+    """
+    Generic IRCoT loop. Works with any retriever that accepts (query, top_k) or (query).
+
+    Returns dict with docs, cot_chain, retrieval_queries, total_retrieval_time, num_steps.
+    """
+    from openai import OpenAI
+
+    client = OpenAI()
+
+    query = _sanitize_text(query)
+
+    total_retrieval_time = 0.0
+
+    # Step 0: initial retrieval
+    start = time.time()
+    try:
+        initial = retrieve_fn(query, top_k=top_k)
+    except TypeError:
+        initial = retrieve_fn(query)
+    total_retrieval_time += time.time() - start
+
+    collected_docs = {}
+    for doc in initial.get("docs", []):
+        h = hash(doc)
+        if h not in collected_docs:
+            collected_docs[h] = doc
+
+    cot_sentences = []
+    retrieval_queries = [query]
+
+    for step in range(max_steps):
+        context = _sanitize_text("\n\n".join(list(collected_docs.values())[:10]))
+        cot_so_far = "\n".join(cot_sentences) if cot_sentences else "None yet."
+
+        try:
+            resp = client.chat.completions.create(
+                model=llm_model,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": IRCOT_COT_PROMPT.format(
+                            question=query,
+                            context=context[:3000],
+                            cot_so_far=cot_so_far,
+                        ),
+                    }
+                ],
+                temperature=0,
+                max_tokens=150,
+            )
+            cot_text = resp.choices[0].message.content.strip()
+        except Exception as e:
+            print(f"    IRCoT step {step + 1} failed: {e}")
+            break
+
+        reasoning_line = ""
+        search_query = ""
+        for line in cot_text.split("\n"):
+            line = line.strip()
+            if line.lower().startswith("reasoning:"):
+                reasoning_line = line[len("reasoning:") :].strip()
+            elif line.lower().startswith("search:"):
+                search_query = line[len("search:") :].strip()
+
+        if reasoning_line:
+            cot_sentences.append(reasoning_line)
+
+        if not search_query or search_query.upper() == "DONE":
+            break
+
+        search_query = _sanitize_text(search_query)
+
+        retrieval_queries.append(search_query)
+        start = time.time()
+        try:
+            new_results = retrieve_fn(search_query, top_k=top_k)
+        except TypeError:
+            new_results = retrieve_fn(search_query)
+        total_retrieval_time += time.time() - start
+
+        for doc in new_results.get("docs", []):
+            h = hash(doc)
+            if h not in collected_docs:
+                collected_docs[h] = doc
+
+    cot_chain = "\n".join(f"- {s}" for s in cot_sentences)
+    final_docs = list(collected_docs.values())[:10]
+    final_context = ""
+    if cot_chain:
+        final_context += f"Reasoning chain:\n{cot_chain}\n\n"
+    final_context += "Supporting documents:\n" + "\n\n".join(final_docs)
+
+    return {
+        "context": final_context,
+        "docs": final_docs,
+        "cot_sentences": cot_sentences,
+        "retrieval_queries": retrieval_queries,
+        "total_retrieval_time": total_retrieval_time,
+        "num_steps": len(cot_sentences),
+        "num_docs": len(collected_docs),
+    }
+
+
+def run_cell_G(
+    transcriptions: List[Dict],
+    ground_truth: Dict,
+    naive_rag: NaiveRAG,
+    top_k: int = 5,
+    max_steps: int = 3,
+    llm_model: str = "gpt-4o-mini",
+) -> List[Dict]:
+    """Cell G: IRCoT + Naive RAG + ASR top-1 (or oracle)."""
+    print("\n" + "=" * 60)
+    print(f"CELL G: IRCoT + Naive RAG (max_steps={max_steps})")
+    print("=" * 60)
+
+    results = []
+    for i, t in enumerate(transcriptions):
+        query = t["transcribed_text"]
+        qid = t["id"]
+        gt = ground_truth.get(qid, {}).get("answer", "")
+
+        ircot = run_ircot_loop(
+            query,
+            naive_rag.retrieve_top1,
+            llm_model=llm_model,
+            max_steps=max_steps,
+            top_k=top_k,
+        )
+
+        gen = generate_answer_openai(ircot["context"], query, model=llm_model)
+
+        em = exact_match(gen["answer"], gt)
+        f1 = f1_score(gen["answer"], gt)
+        wer = word_error_rate(query, t["original_text"])
+
+        results.append(
+            {
+                "id": qid,
+                "query": query,
+                "original": t["original_text"],
+                "answer": gen["answer"],
+                "ground_truth": gt,
+                "em": em,
+                "f1": f1,
+                "wer": wer,
+                "retrieval_time": ircot["total_retrieval_time"],
+                "generation_time": gen["generation_time"],
+                "num_steps": ircot["num_steps"],
+                "num_docs": ircot["num_docs"],
+                "retrieval_queries": ircot["retrieval_queries"],
+            }
+        )
+
+        if (i + 1) % 20 == 0 or i == 0:
+            avg_f1 = sum(r["f1"] for r in results) / len(results)
+            avg_em = sum(r["em"] for r in results) / len(results)
+            print(f"  [{i + 1}/{len(transcriptions)}] F1={avg_f1:.3f} EM={avg_em:.3f}")
+
+    return results
+
+
+def run_cell_H(
+    transcriptions: List[Dict],
+    ground_truth: Dict,
+    hipporag,
+    max_steps: int = 3,
+    llm_model: str = "gpt-4o-mini",
+) -> List[Dict]:
+    """Cell H: IRCoT + HippoRAG + ASR top-1 (or oracle)."""
+    print("\n" + "=" * 60)
+    print(f"CELL H: IRCoT + HippoRAG (max_steps={max_steps})")
+    print("=" * 60)
+
+    results = []
+    for i, t in enumerate(transcriptions):
+        query = t["transcribed_text"]
+        qid = t["id"]
+        gt = ground_truth.get(qid, {}).get("answer", "")
+
+        ircot = run_ircot_loop(
+            query,
+            hipporag.retrieve_top1,
+            llm_model=llm_model,
+            max_steps=max_steps,
+        )
+
+        gen = generate_answer_openai(ircot["context"], query, model=llm_model)
+
+        em = exact_match(gen["answer"], gt)
+        f1 = f1_score(gen["answer"], gt)
+        wer = word_error_rate(query, t["original_text"])
+
+        results.append(
+            {
+                "id": qid,
+                "query": query,
+                "original": t["original_text"],
+                "answer": gen["answer"],
+                "ground_truth": gt,
+                "em": em,
+                "f1": f1,
+                "wer": wer,
+                "retrieval_time": ircot["total_retrieval_time"],
+                "generation_time": gen["generation_time"],
+                "num_steps": ircot["num_steps"],
+                "num_docs": ircot["num_docs"],
+                "retrieval_queries": ircot["retrieval_queries"],
+            }
+        )
+
+        if (i + 1) % 20 == 0 or i == 0:
+            avg_f1 = sum(r["f1"] for r in results) / len(results)
+            avg_em = sum(r["em"] for r in results) / len(results)
+            print(f"  [{i + 1}/{len(transcriptions)}] F1={avg_f1:.3f} EM={avg_em:.3f}")
+
+    return results
+
+
+# ---------------------------------------------------------------------------
 # Summary & output
 # ---------------------------------------------------------------------------
 
@@ -581,7 +831,7 @@ def print_results_table(summaries: Dict[str, Dict], accent: str = "") -> None:
     print(f"RESULTS{label}")
     print("=" * 60)
 
-    for cell_name in ["E", "F", "A", "B", "C", "D"]:
+    for cell_name in ["E", "F", "A", "G", "B", "C", "H", "D"]:
         s = summaries.get(cell_name)
         if s and s["n"] > 0:
             wer_str = f" WER={s['wer']:.4f}" if s["wer"] > 0 else ""
@@ -663,6 +913,9 @@ def main():
     parser.add_argument("--llm-model", type=str, default="gpt-4o-mini")
     parser.add_argument("--top-k", type=int, default=10)
     parser.add_argument(
+        "--ircot-steps", type=int, default=3, help="Max IRCoT reasoning steps"
+    )
+    parser.add_argument(
         "--sample", type=int, default=None, help="Only run first N questions"
     )
 
@@ -686,8 +939,8 @@ def main():
     args = parser.parse_args()
 
     cells_to_run = set(c.upper() for c in args.cells)
-    need_naive = bool(cells_to_run & {"A", "B", "E"})
-    need_hipporag = bool(cells_to_run & {"C", "D", "F"})
+    need_naive = bool(cells_to_run & {"A", "B", "E", "G"})
+    need_hipporag = bool(cells_to_run & {"C", "D", "F", "H"})
 
     print("=" * 60)
     print("SPOKEN MULTI-HOP QA: 2x2 EXPERIMENT")
@@ -712,7 +965,7 @@ def main():
 
     if cells_to_run & {"E", "F"}:
         transcriptions_oracle = prepare_oracle_transcriptions(asr_data)
-    if cells_to_run & {"A", "C"}:
+    if cells_to_run & {"A", "C", "G", "H"}:
         transcriptions_top1 = prepare_top1_transcriptions(asr_data, args.accent)
     if cells_to_run & {"B", "D"}:
         transcriptions_nbest = prepare_nbest_transcriptions(asr_data, args.accent)
@@ -802,6 +1055,29 @@ def main():
         )
         all_results["D"] = results
         summaries["D"] = summarize_cell("D", results)
+
+    if "G" in cells_to_run:
+        results = run_cell_G(
+            transcriptions_top1,
+            ground_truth,
+            naive_rag,
+            top_k=args.top_k,
+            max_steps=args.ircot_steps,
+            llm_model=args.llm_model,
+        )
+        all_results["G"] = results
+        summaries["G"] = summarize_cell("G", results)
+
+    if "H" in cells_to_run:
+        results = run_cell_H(
+            transcriptions_top1,
+            ground_truth,
+            hipporag,
+            max_steps=args.ircot_steps,
+            llm_model=args.llm_model,
+        )
+        all_results["H"] = results
+        summaries["H"] = summarize_cell("H", results)
 
     print_results_table(summaries, accent=args.accent)
 
