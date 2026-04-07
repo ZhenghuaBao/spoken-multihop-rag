@@ -8,9 +8,11 @@
 Usage:
     python experiments/run_2x2.py --cells E F              # Oracle only
     python experiments/run_2x2.py --cells A C --accent us  # ASR top-1, US accent
+    python experiments/run_2x2.py --cells A B C D --accent ng  # All Naive/HippoRAG cells
 """
 
 import json
+import math
 import sys
 import time
 import argparse
@@ -79,6 +81,50 @@ def prepare_top1_transcriptions(asr_data: List[Dict], accent: str) -> List[Dict]
                 "id": entry["id"],
                 "original_text": _sanitize_text(entry["question"]),
                 "transcribed_text": _sanitize_text(acc["top1"]),
+            }
+        )
+    return results
+
+
+def prepare_nbest_transcriptions(asr_data: List[Dict], accent: str) -> List[Dict]:
+    """Extract N-best transcriptions for a specific accent."""
+    results = []
+    for entry in asr_data:
+        acc = entry["accents"][accent]
+        hypotheses = []
+        for i, hyp in enumerate(acc["nbest"]):
+            score = hyp.get("avg_logprob", 0.0)
+            hypotheses.append(
+                {
+                    "text": hyp["text"],
+                    "score": score,
+                    "rank": i,
+                    "temperature": hyp.get("temperature", 0.0),
+                }
+            )
+
+        # Compute normalized scores (softmax over avg_logprob)
+        if len(hypotheses) > 1:
+            scores = [h["score"] for h in hypotheses]
+            max_s = max(scores)
+            if all(s == scores[0] for s in scores):
+                for h in hypotheses:
+                    h["normalized_score"] = 1.0 / len(hypotheses)
+            else:
+                exp_scores = [math.exp(s - max_s) for s in scores]
+                total = sum(exp_scores)
+                for h, es in zip(hypotheses, exp_scores):
+                    h["normalized_score"] = es / total
+        elif hypotheses:
+            hypotheses[0]["normalized_score"] = 1.0
+
+        results.append(
+            {
+                "id": entry["id"],
+                "original_text": entry["question"],
+                "best_text": acc["top1"],
+                "hypotheses": hypotheses,
+                "num_hypotheses": len(hypotheses),
             }
         )
     return results
@@ -380,6 +426,133 @@ def run_cell_C(
 
 
 # ---------------------------------------------------------------------------
+# Experiment cells: ASR N-best
+# ---------------------------------------------------------------------------
+
+
+def run_cell_B(
+    transcriptions_nbest: List[Dict],
+    ground_truth: Dict,
+    naive_rag: NaiveRAG,
+    nbest_strategy: str = "union",
+    top_k: int = 10,
+    llm_model: str = "gpt-4o-mini",
+) -> List[Dict]:
+    """Cell B: Naive RAG + ASR N-best."""
+    print("\n" + "=" * 60)
+    print(f"CELL B: Naive RAG + ASR N-best (strategy={nbest_strategy})")
+    print("=" * 60)
+
+    retrieval_fn = {
+        "union": naive_rag.retrieve_nbest_union,
+        "weighted": naive_rag.retrieve_nbest_weighted,
+        "concat": naive_rag.retrieve_nbest_concat,
+    }[nbest_strategy]
+
+    results = []
+    for i, t in enumerate(transcriptions_nbest):
+        qid = t["id"]
+        gt = ground_truth.get(qid, {}).get("answer", "")
+        hypotheses = t["hypotheses"]
+        best_query = t["best_text"]
+
+        ret = retrieval_fn(hypotheses, top_k=top_k)
+
+        context = "\n\n".join(ret["docs"][:top_k])
+        gen = generate_answer_openai(context, best_query, model=llm_model)
+
+        em = exact_match(gen["answer"], gt)
+        f1 = f1_score(gen["answer"], gt)
+        wer = word_error_rate(best_query, t["original_text"])
+
+        results.append(
+            {
+                "id": qid,
+                "query": best_query,
+                "original": t["original_text"],
+                "num_hypotheses": len(hypotheses),
+                "answer": gen["answer"],
+                "ground_truth": gt,
+                "em": em,
+                "f1": f1,
+                "wer": wer,
+                "retrieval_time": ret["retrieval_time"],
+                "generation_time": gen["generation_time"],
+                "strategy": nbest_strategy,
+            }
+        )
+
+        if (i + 1) % 20 == 0 or i == 0:
+            avg_f1 = sum(r["f1"] for r in results) / len(results)
+            avg_em = sum(r["em"] for r in results) / len(results)
+            print(
+                f"  [{i + 1}/{len(transcriptions_nbest)}] F1={avg_f1:.3f} EM={avg_em:.3f}"
+            )
+
+    return results
+
+
+def run_cell_D(
+    transcriptions_nbest: List[Dict],
+    ground_truth: Dict,
+    hipporag,
+    nbest_strategy: str = "union",
+    llm_model: str = "gpt-4o-mini",
+) -> List[Dict]:
+    """Cell D: HippoRAG + ASR N-best."""
+    print("\n" + "=" * 60)
+    print(f"CELL D: HippoRAG + ASR N-best (strategy={nbest_strategy})")
+    print("=" * 60)
+
+    retrieval_fn = {
+        "union": hipporag.retrieve_nbest_union,
+        "concat": hipporag.retrieve_nbest_concat,
+    }[nbest_strategy]
+
+    results = []
+    for i, t in enumerate(transcriptions_nbest):
+        qid = t["id"]
+        gt = ground_truth.get(qid, {}).get("answer", "")
+        hypotheses = t["hypotheses"]
+        best_query = t["best_text"]
+
+        ret = retrieval_fn(hypotheses)
+
+        context = "\n\n".join(ret["docs"])
+        gen = generate_answer_openai(context, best_query, model=llm_model)
+
+        em = exact_match(gen["answer"], gt)
+        f1 = f1_score(gen["answer"], gt)
+        wer = word_error_rate(best_query, t["original_text"])
+
+        results.append(
+            {
+                "id": qid,
+                "query": best_query,
+                "original": t["original_text"],
+                "num_hypotheses": len(hypotheses),
+                "answer": gen["answer"],
+                "ground_truth": gt,
+                "em": em,
+                "f1": f1,
+                "wer": wer,
+                "retrieval_time": ret["retrieval_time"],
+                "generation_time": gen["generation_time"],
+                "strategy": nbest_strategy,
+            }
+        )
+
+        if (i + 1) % 20 == 0 or i == 0:
+            avg_f1 = sum(r["f1"] for r in results) / len(results)
+            avg_em = sum(r["em"] for r in results) / len(results)
+            print(
+                f"  [{i + 1}/{len(transcriptions_nbest)}] F1={avg_f1:.3f} EM={avg_em:.3f}"
+            )
+
+    return results
+
+
+# ---------------------------------------------------------------------------
 # Summary & output
 # ---------------------------------------------------------------------------
 
@@ -408,7 +581,7 @@ def print_results_table(summaries: Dict[str, Dict], accent: str = "") -> None:
     print(f"RESULTS{label}")
     print("=" * 60)
 
-    for cell_name in ["E", "F", "A", "C"]:
+    for cell_name in ["E", "F", "A", "B", "C", "D"]:
         s = summaries.get(cell_name)
         if s and s["n"] > 0:
             wer_str = f" WER={s['wer']:.4f}" if s["wer"] > 0 else ""
@@ -428,6 +601,13 @@ def print_results_table(summaries: Dict[str, Dict], accent: str = "") -> None:
     if a.get("n") and c.get("n"):
         diff = c["f1"] - a["f1"]
         print(f"  C vs A (HippoRAG vs Naive, top-1):  F1 diff = {diff:+.3f}")
+    b, d = summaries.get("B", {}), summaries.get("D", {})
+    if a.get("n") and b.get("n"):
+        diff = b["f1"] - a["f1"]
+        print(f"  B vs A (N-best vs top-1, Naive):    F1 diff = {diff:+.3f}")
+    if c.get("n") and d.get("n"):
+        diff = d["f1"] - c["f1"]
+        print(f"  D vs C (N-best vs top-1, HippoRAG): F1 diff = {diff:+.3f}")
 
     print("=" * 60)
 
@@ -472,7 +652,13 @@ def main():
         "--cells",
         nargs="+",
         default=["E", "F"],
-        help="Which cells to run (e.g., --cells E F A C)",
+        help="Which cells to run (e.g., --cells E F A B C D)",
+    )
+    parser.add_argument(
+        "--nbest-strategy",
+        type=str,
+        default="union",
+        choices=["union", "weighted", "concat"],
     )
     parser.add_argument("--llm-model", type=str, default="gpt-4o-mini")
     parser.add_argument("--top-k", type=int, default=10)
@@ -500,8 +686,8 @@ def main():
     args = parser.parse_args()
 
     cells_to_run = set(c.upper() for c in args.cells)
-    need_naive = bool(cells_to_run & {"A", "E"})
-    need_hipporag = bool(cells_to_run & {"C", "F"})
+    need_naive = bool(cells_to_run & {"A", "B", "E"})
+    need_hipporag = bool(cells_to_run & {"C", "D", "F"})
 
     print("=" * 60)
     print("SPOKEN MULTI-HOP QA: 2x2 EXPERIMENT")
@@ -522,11 +708,14 @@ def main():
     # Prepare transcriptions
     transcriptions_oracle = None
     transcriptions_top1 = None
+    transcriptions_nbest = None
 
     if cells_to_run & {"E", "F"}:
         transcriptions_oracle = prepare_oracle_transcriptions(asr_data)
     if cells_to_run & {"A", "C"}:
         transcriptions_top1 = prepare_top1_transcriptions(asr_data, args.accent)
+    if cells_to_run & {"B", "D"}:
+        transcriptions_nbest = prepare_nbest_transcriptions(asr_data, args.accent)
 
     # --- Load indices ---
     naive_rag = None
@@ -591,6 +780,29 @@ def main():
         all_results["C"] = results
         summaries["C"] = summarize_cell("C", results)
 
+    if "B" in cells_to_run:
+        results = run_cell_B(
+            transcriptions_nbest,
+            ground_truth,
+            naive_rag,
+            nbest_strategy=args.nbest_strategy,
+            top_k=args.top_k,
+            llm_model=args.llm_model,
+        )
+        all_results["B"] = results
+        summaries["B"] = summarize_cell("B", results)
+
+    if "D" in cells_to_run:
+        results = run_cell_D(
+            transcriptions_nbest,
+            ground_truth,
+            hipporag,
+            nbest_strategy=args.nbest_strategy,
+            llm_model=args.llm_model,
+        )
+        all_results["D"] = results
+        summaries["D"] = summarize_cell("D", results)
+
     print_results_table(summaries, accent=args.accent)
 
     # --- Save ---
@@ -607,6 +819,7 @@ def main():
                 "config": {
                     "accent": args.accent,
                     "cells": sorted(cells_to_run),
+                    "nbest_strategy": args.nbest_strategy,
                     "llm_model": args.llm_model,
                     "top_k": args.top_k,
                     "num_questions": len(asr_data),
