@@ -289,7 +289,16 @@ def run_cell_F(
         qid = t["id"]
         gt = ground_truth.get(qid, {}).get("answer", "")
 
-        ret = hipporag.retrieve_top1(query)
+        try:
+            ret = hipporag.retrieve_top1(query)
+        except Exception as e:
+            if "parse the JSON" in str(e) or "400" in str(e):
+                print(
+                    f"    WARNING: HippoRAG retrieve failed for [{qid}], using empty docs"
+                )
+                ret = {"docs": [], "retrieval_time": 0.0}
+            else:
+                raise
 
         context = "\n\n".join(ret["docs"])
         gen = generate_answer_openai(context, query, model=llm_model)
@@ -396,7 +405,16 @@ def run_cell_C(
         qid = t["id"]
         gt = ground_truth.get(qid, {}).get("answer", "")
 
-        ret = hipporag.retrieve_top1(query)
+        try:
+            ret = hipporag.retrieve_top1(query)
+        except Exception as e:
+            if "parse the JSON" in str(e) or "400" in str(e):
+                print(
+                    f"    WARNING: HippoRAG retrieve failed for [{qid}], using empty docs"
+                )
+                ret = {"docs": [], "retrieval_time": 0.0}
+            else:
+                raise
 
         context = "\n\n".join(ret["docs"])
         gen = generate_answer_openai(context, query, model=llm_model)
@@ -598,12 +616,24 @@ def run_ircot_loop(
 
     total_retrieval_time = 0.0
 
+    def _safe_retrieve(q, top_k=top_k):
+        """Retrieve with fallback for HippoRAG JSON errors."""
+        try:
+            try:
+                return retrieve_fn(q, top_k=top_k)
+            except TypeError:
+                return retrieve_fn(q)
+        except Exception as e:
+            if "parse the JSON" in str(e) or "400" in str(e):
+                print(
+                    f"    WARNING: retrieve failed ({e.__class__.__name__}), returning empty docs"
+                )
+                return {"docs": [], "retrieval_time": 0.0}
+            raise
+
     # Step 0: initial retrieval
     start = time.time()
-    try:
-        initial = retrieve_fn(query, top_k=top_k)
-    except TypeError:
-        initial = retrieve_fn(query)
+    initial = _safe_retrieve(query)
     total_retrieval_time += time.time() - start
 
     collected_docs = {}
@@ -659,10 +689,7 @@ def run_ircot_loop(
 
         retrieval_queries.append(search_query)
         start = time.time()
-        try:
-            new_results = retrieve_fn(search_query, top_k=top_k)
-        except TypeError:
-            new_results = retrieve_fn(search_query)
+        new_results = _safe_retrieve(search_query)
         total_retrieval_time += time.time() - start
 
         for doc in new_results.get("docs", []):
@@ -891,9 +918,18 @@ def run_ircot_loop_nbest(
         retrieval_queries.append(search_query)
         start = time.time()
         try:
-            new_results = retrieve_top1_fn(search_query, top_k=top_k)
-        except TypeError:
-            new_results = retrieve_top1_fn(search_query)
+            try:
+                new_results = retrieve_top1_fn(search_query, top_k=top_k)
+            except TypeError:
+                new_results = retrieve_top1_fn(search_query)
+        except Exception as e:
+            if "parse the JSON" in str(e) or "400" in str(e):
+                print(
+                    f"    WARNING: retrieve failed ({e.__class__.__name__}), returning empty docs"
+                )
+                new_results = {"docs": [], "retrieval_time": 0.0}
+            else:
+                raise
         total_retrieval_time += time.time() - start
 
         for doc in new_results.get("docs", []):
