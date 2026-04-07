@@ -1178,7 +1178,8 @@ def print_accent_comparison(all_summaries: Dict[str, Dict[str, Dict]]) -> None:
                 if s and s["n"] > 0:
                     row += f" | F1={s['f1']:.3f} EM={s['em']:.3f}"
                 else:
-                    row += f" | {'\u2014':^18s}"
+                    dash = "\u2014"
+                    row += f" | {dash:^18s}"
             print(row)
 
     print("-" * 80)
@@ -1190,7 +1191,8 @@ def print_accent_comparison(all_summaries: Dict[str, Dict[str, Dict]]) -> None:
                 row += f" | {s['wer']:^18.4f}"
                 break
         else:
-            row += f" | {'\u2014':^18s}"
+            dash = "\u2014"
+            row += f" | {dash:^18s}"
     print(row)
 
 
