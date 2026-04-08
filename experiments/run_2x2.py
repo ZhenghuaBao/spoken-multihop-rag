@@ -72,7 +72,7 @@ def load_corpus_documents(docs_dir: Path) -> List[str]:
 def _sanitize_text(text: str) -> str:
     """Remove non-printable / non-UTF8 characters that break OpenAI API calls."""
     text = text.encode("utf-8", errors="ignore").decode("utf-8")
-    text = "".join(c for c in text if c.isprintable() or c == " ")
+    text = "".join(c for c in text if c.isprintable() or c in " \n\t\r")
     return text.strip()
 
 
@@ -179,20 +179,28 @@ def generate_answer_openai(
     query = _sanitize_text(query)
 
     start = time.time()
-    stream = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": ANSWER_PROMPT},
-            {
-                "role": "user",
-                "content": f"Context:\n{context}\n\nQuestion: {query}\n\nAnswer (be extremely concise):",
-            },
-        ],
-        temperature=0,
-        max_tokens=50,
-        stream=True,
-        stream_options={"include_usage": True},
-    )
+    try:
+        stream = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": ANSWER_PROMPT},
+                {
+                    "role": "user",
+                    "content": f"Context:\n{context}\n\nQuestion: {query}\n\nAnswer (be extremely concise):",
+                },
+            ],
+            temperature=0,
+            max_tokens=50,
+            stream=True,
+            stream_options={"include_usage": True},
+        )
+    except Exception as e:
+        if "parse the JSON" in str(e) or "400" in str(e):
+            print(
+                f"    WARNING: generate_answer failed ({e.__class__.__name__}), returning empty answer"
+            )
+            return {"answer": "", "generation_time": time.time() - start}
+        raise
 
     parts = []
     ttft = 0.0
