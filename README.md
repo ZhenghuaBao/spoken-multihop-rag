@@ -1,45 +1,108 @@
+<div align="center">
+
 # Spoken Multi-hop RAG
 
-Evaluation suite for studying how upstream ASR errors propagate through
-multi-hop retrieval-augmented generation (RAG) architectures. Covers
-three multi-hop QA benchmarks (HotpotQA, 2WikiMultiHopQA, MuSiQue),
-four English accents (US, IN, PH, NG) synthesized via neural TTS, and
-four RAG configurations (Naive RAG, HippoRAG2, IRCoT+Naive,
-IRCoT+HippoRAG2).
+_Better Retrieval, Worse Robustness: How Multi-hop RAG Amplifies ASR Errors_
 
-## Directory layout
+[![Paper](https://img.shields.io/badge/arXiv-Coming%20Soon-red)](https://arxiv.org/)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.10+-green.svg)](https://python.org)
+[![Whisper](https://img.shields.io/badge/ASR-Whisper--large--v3-orange.svg)](https://github.com/openai/whisper)
 
-- `asr/` — Speech transcription scripts (Whisper-large-v3,
-  SeamlessM4T-v2-large).
-- `data/` — Dataset build/load utilities. Audio and large JSON dumps
-  are gitignored; regenerate via the build scripts.
-- `evaluation/` — Metrics, error categorization, statistical
-  significance tests, validation against real accented speech.
-- `experiments/` — Main 2x2 experiment runner (`run_2x2.py`) plus
-  mitigation experiments (N-best rescoring, phonetic entity
-  correction).
-- `retrieval/` — Retrieval wrappers (dense, HippoRAG2).
-- `results/` — Per-cell evaluation outputs. Gitignored; large.
-- `logs/` — Run logs. Gitignored.
+</div>
 
-## Setup
+<div align="center">
+<img src="figure/pipeline.png" style="width: 95%;" />
+</div>
+
+## 🎯 Overview
+
+**Spoken Multi-hop RAG** is an evaluation suite for studying how
+upstream ASR errors propagate through multi-hop retrieval-augmented
+generation (RAG) architectures. We ask whether the architectural
+sophistication of multi-hop RAG — specifically entity-graph linking
+and iterative reformulation — absorbs or amplifies these upstream
+errors.
+
+The suite covers:
+
+- **3 multi-hop QA benchmarks**: HotpotQA, 2WikiMultiHopQA, MuSiQue
+- **4 English accents**: US, IN, PH, NG (synthesized via neural TTS)
+- **4 RAG configurations**: Naive RAG, HippoRAG2, IRCoT+Naive,
+  IRCoT+HippoRAG2
+- **2 lightweight mitigations**: N-best rescoring, phonetic entity
+  correction
+- **Cross-system ASR validation**: Whisper-large-v3 + SeamlessM4T-v2-large
+- **Real-speech validation**: 500 Nigerian-English utterances
+
+<p align="center">
+    🔨&nbsp;<a href="#-installation">Installation</a>
+    | 🚀&nbsp;<a href="#-quick-start">Quick Start</a>
+    | 📊&nbsp;<a href="#-datasets">Datasets</a>
+    | 🏋️&nbsp;<a href="#-running-experiments">Experiments</a>
+    | 🧪&nbsp;<a href="#-analysis-scripts">Analysis</a>
+    | 🔗&nbsp;<a href="#-citation">Citation</a>
+</p>
+
+## 🔗 Citation
+
+If you use this code or build on our findings, please cite:
+
+```bibtex
+@inproceedings{TODO_citekey,
+  title     = {Better Retrieval, Worse Robustness: How Multi-hop RAG Amplifies ASR Errors},
+  author    = {TODO: authors},
+  booktitle = {TODO: venue},
+  year      = {TODO},
+  url       = {TODO: arxiv / anthology URL}
+}
+```
+
+## ✨ Key Findings
+
+- **🔁 Structural amplification**: more sophisticated retrieval
+  (graph + iterative) widens the Oracle-to-accent F1 gap by
+  $36\%$–$67\%$ relative to naive dense retrieval, on all three
+  benchmarks.
+- **🏷️ Entity corruption dominates**: corruption of a single named
+  entity accounts for $87\%$–$94\%$ of accent-induced degradation on
+  2WikiMultiHopQA, and remains the dominant failure mode on the
+  other two benchmarks.
+- **🧪 Mitigation diagnostics**: N-best rescoring recovers ~0% of the
+  gap; phonetic correction recovers $4\%$–$11\%$, preferentially on
+  graph-based methods. Together they isolate the residual to
+  structural rather than stochastic or surface-level error.
+
+## 🔨 Installation
+
+### Prerequisites
+
+- Python 3.10+
+- CUDA-capable GPU (≥12 GB VRAM for Whisper / SeamlessM4T inference)
+- ~4 GB RAM for HippoRAG2 parquet index
+
+### Setup
 
 ```bash
+git clone https://github.com/ZhenghuaBao/spoken-multihop-rag.git
+cd spoken-multihop-rag
+
 pip install -r requirements.txt
 python -m spacy download en_core_web_sm
 ```
 
-API access: set `OPENAI_API_KEY` (for `gpt-4o-mini` answer generation
-and `text-embedding-3-small` embeddings) in your environment or in a
-local `.env.local`.
+Set OpenAI credentials in your environment or a local `.env.local`:
 
-GPU: Whisper-large-v3 and SeamlessM4T-v2-large need ~12 GB of VRAM for
-inference. The HippoRAG2 index loads ~4 GB into RAM (parquet).
+```bash
+export OPENAI_API_KEY=sk-...
+```
 
-## Reproducing the main results
+The pipeline uses `gpt-4o-mini` for answer generation and
+`text-embedding-3-small` for dense retrieval.
 
-Run the full $48$-cell main table (3 datasets × 4 methods × 4 accents
-+ Oracle), per dataset:
+## 🚀 Quick Start
+
+Run the main $48$-cell evaluation table for one benchmark:
 
 ```bash
 python experiments/run_2x2.py \
@@ -50,27 +113,54 @@ python experiments/run_2x2.py \
     --output results/hotpotqa_1000.json
 ```
 
-Each run produces a JSON with per-question F1/EM/WER and per-cell
-summaries.
+This produces per-question F1/EM/WER plus per-cell summaries for
+Oracle + 4 accents × 4 methods.
 
-## Reproducing analyses
+## 📊 Datasets
 
-| Paper claim | Script |
-|---|---|
-| Paired bootstrap p-values + 95% CI | `evaluation/bootstrap_significance.py` |
-| WER-stratified degradation (Fig. wer_threshold) | `evaluation/wer_bucket_per_method.py` |
-| WER-threshold routing experiment | `evaluation/wer_routing_simulation.py` |
-| Entity corruption rate (real NG vs synth) | `evaluation/entity_corruption_analysis.py` |
-| Real Nigerian English validation | `evaluation/nigerian_validation.py` |
-| Phonetic severity + conditional analysis | `evaluation/severity_distribution.py` |
-| Hop-count breakdown on MuSiQue | `evaluation/hop_count_breakdown.py` |
-| N-best rescoring table | `evaluation/nbest_table.py` |
-| Cascade case-study examples | `evaluation/find_amplification_examples.py` |
+| Dataset | Domain | n | Question types |
+|---|---|---|---|
+| **HotpotQA** | Wikipedia | 1000 | bridge, comparison |
+| **2WikiMultiHopQA** | Wikipedia | 1000 | + compositional, inference |
+| **MuSiQue** | Wikipedia | 1000 | 2-, 3-, 4-hop compositions |
 
-## Mitigations
+All three are sampled uniformly at random from the official
+development split with seed `42`.
+
+Accent synthesis uses Microsoft Edge TTS:
+
+| Code | Voice | Role |
+|---|---|---|
+| US | `en-US-JennyNeural` | High-resource baseline |
+| IN | `en-IN-NeerjaNeural` | Non-native (Indian English) |
+| PH | `en-PH-RosaNeural` | Non-native (Filipino English) |
+| NG | `en-NG-EzinneNeural` | Post-colonial (Nigerian English) |
+
+## 🏋️ Running Experiments
+
+### Main 2x2 experiment
 
 ```bash
-# Phonetic entity correction (Table 3)
+python experiments/run_2x2.py \
+    --cells A B C D G H I J \
+    --accent all+oracle \
+    --ircot-steps 3 \
+    --output results/2wiki_1000.json
+```
+
+Cell codes:
+
+| Cell | Method | Variant |
+|---|---|---|
+| A / B | Naive RAG | top-1 / N-best |
+| C / D | HippoRAG2 | top-1 / N-best |
+| G / I | IRCoT+Naive | top-1 / N-best |
+| H / J | IRCoT+HippoRAG2 | top-1 / N-best |
+| E / F | Oracle (clean text) | Naive / HippoRAG2 |
+
+### Phonetic entity correction (Table 3)
+
+```bash
 python experiments/phonetic_correction_v2.py \
     --asr-data data/2wiki_spoken/accent_nbest_results_2wiki.json \
     --docs-dir ../dataset/2wikimultihopqa_1000/documents \
@@ -79,10 +169,7 @@ python experiments/phonetic_correction_v2.py \
     --output data/2wiki_spoken/accent_nbest_results_2wiki_phonetic_v2.json
 ```
 
-N-best rescoring is built into `run_2x2.py` (use cells B, D, I, J for
-the N-best variants of A, C, G, H respectively).
-
-## Cross-system ASR
+### Cross-system ASR check (SeamlessM4T)
 
 ```bash
 python asr/transcribe_seamless_server.py \
@@ -90,16 +177,61 @@ python asr/transcribe_seamless_server.py \
     --output data/2wiki_spoken/ng_seamless_transcripts.json
 ```
 
-## Citation
+## 🧪 Analysis Scripts
 
-If you use this code or findings, please cite:
+Each script reproduces one or more paper claims:
 
-```bibtex
-@inproceedings{TODO_citekey,
-  title     = {TODO: paper title},
-  author    = {TODO: authors},
-  booktitle = {TODO: venue},
-  year      = {TODO},
-  url       = {TODO: arxiv / anthology URL}
-}
+| Paper claim | Script |
+|---|---|
+| Paired bootstrap + 95% CI | `evaluation/bootstrap_significance.py` |
+| WER-stratified degradation | `evaluation/wer_bucket_per_method.py` |
+| WER-threshold routing experiment | `evaluation/wer_routing_simulation.py` |
+| Entity corruption rate (real vs synth NG) | `evaluation/entity_corruption_analysis.py` |
+| Real-NG validation (Whisper transcription) | `evaluation/nigerian_validation.py` |
+| Phonetic severity + conditional | `evaluation/severity_distribution.py` |
+| Hop-count breakdown (MuSiQue) | `evaluation/hop_count_breakdown.py` |
+| N-best rescoring table | `evaluation/nbest_table.py` |
+| Cascade case-study examples | `evaluation/find_amplification_examples.py` |
+
+## 📁 Project Structure
+
 ```
+spoken-multihop-rag/
+├── asr/                    # Speech transcription (Whisper, SeamlessM4T)
+├── data/                   # Dataset build/load utilities
+├── evaluation/             # Metrics, error categorization, analyses
+├── experiments/            # Main runner + mitigation experiments
+├── retrieval/              # Dense + HippoRAG2 wrappers
+├── results/                # Per-cell outputs (gitignored)
+├── logs/                   # Run logs (gitignored)
+├── figure/                 # README assets
+├── requirements.txt
+├── LICENSE
+└── README.md
+```
+
+## ⚙️ Configuration
+
+Key parameters (defaults match the paper):
+
+| Parameter | Default | Where |
+|---|---|---|
+| LLM model | `gpt-4o-mini` | `run_2x2.py --llm-model` |
+| Embedding model | `text-embedding-3-small` | `run_2x2.py --embed-model` |
+| Retrieval top-$k$ | $10$ | `run_2x2.py --top-k` |
+| IRCoT depth | $3$ | `run_2x2.py --ircot-steps` |
+| HippoRAG2 damping | $0.5$ | Inside `retrieval/hipporag.py` |
+| Phonetic Jaccard min | $0.4$ | `phonetic_correction_v2.py --jaccard` |
+| Phonetic edit threshold | $75$ | `--edit-thresh` |
+| Full-corpus fallback threshold | $85$ | `--fallback-thresh` |
+| Bootstrap resamples | $10{,}000$ | `bootstrap_significance.py --n-resamples` |
+
+## 🙏 Acknowledgments
+
+- **HippoRAG2** — Original implementation by
+  [OSU-NLP-Group](https://github.com/OSU-NLP-Group/HippoRAG).
+- **IRCoT** — Trivedi et al. 2023 (ACL).
+- **Whisper** — Radford et al. 2023 (ICML).
+- **SeamlessM4T** — Barrault et al. 2023.
+- **Common Voice / AfriSpeech-200** — accented speech corpora used in
+  validation and future-work directions.
