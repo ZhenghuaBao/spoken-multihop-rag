@@ -235,3 +235,11 @@ Key parameters (defaults match the paper):
 - **SeamlessM4T** — Barrault et al. 2023.
 - **Common Voice / AfriSpeech-200** — accented speech corpora used in
   validation and future-work directions.
+
+## 📄 License
+
+This project is released under the
+[Apache License 2.0](LICENSE). You are free to use, modify, and
+distribute the code, subject to the terms in `LICENSE`. Third-party
+components (HippoRAG2, IRCoT, Whisper, SeamlessM4T, spaCy, RapidFuzz,
+etc.) retain their own licenses.
