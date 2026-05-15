@@ -89,3 +89,17 @@ python asr/transcribe_seamless_server.py \
     --audio-dir data/2wiki_spoken/audio/ng \
     --output data/2wiki_spoken/ng_seamless_transcripts.json
 ```
+
+## Citation
+
+If you use this code or findings, please cite:
+
+```bibtex
+@inproceedings{TODO_citekey,
+  title     = {TODO: paper title},
+  author    = {TODO: authors},
+  booktitle = {TODO: venue},
+  year      = {TODO},
+  url       = {TODO: arxiv / anthology URL}
+}
+```
