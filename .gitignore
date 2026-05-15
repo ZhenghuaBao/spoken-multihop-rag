@@ -28,3 +28,18 @@ Thumbs.db
 
 *.wav
 *.json
+
+# Reference papers (other people's work, not project artifacts)
+papers/
+
+# Paper directory: LaTeX sources, figures, drafts — uploaded separately
+paper/
+
+# Result/output artifacts (large, regenerable)
+results/
+
+# Local data dumps
+data/*_spoken/
+
+# Experiment logs (regenerable, often large)
+logs/

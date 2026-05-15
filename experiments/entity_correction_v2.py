@@ -138,10 +138,15 @@ def run_correction(
 
 
 if __name__ == "__main__":
+    from pathlib import Path
+
+    _ROOT = Path(__file__).resolve().parent.parent
+    _PROJECT_ROOT = _ROOT.parent
+
     run_correction(
-        nbest_path=r"E:\Projects\DualRAG\spoken-multihop-rag\data\accent_nbest_results.json",
-        docs_dir=r"E:\Projects\DualRAG\dataset\hotpotqa_1000_hf\documents",
+        nbest_path=str(_ROOT / "data" / "accent_nbest_results.json"),
+        docs_dir=str(_PROJECT_ROOT / "dataset" / "hotpotqa_1000_hf" / "documents"),
         accent="ng",
         threshold=70,
-        output_path=r"E:\Projects\DualRAG\spoken-multihop-rag\data\corrected_ng_queries_v2.json",
+        output_path=str(_ROOT / "data" / "corrected_ng_queries_v2.json"),
     )
