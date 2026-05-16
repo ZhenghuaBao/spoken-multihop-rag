@@ -1,5 +1,3 @@
-# method/run_entity_correction.py
-
 import json
 from openai import OpenAI
 from tqdm import tqdm
@@ -31,7 +29,7 @@ def run_correction_experiment(
     accent: str = "ng",
     output_path: str = "data/corrected_queries.json",
 ):
-    # 加载 N-best results
+    # Load N-best results
     with open(nbest_results_path, encoding="utf-8") as f:
         data = json.load(f)
 
@@ -44,7 +42,7 @@ def run_correction_experiment(
         asr_top1 = sample["accents"][accent]["top1"]
         original = sample["question"]
 
-        # 跳过空的
+        # Skip empty transcriptions
         if not asr_top1:
             corrected.append(
                 {
@@ -76,13 +74,13 @@ def run_correction_experiment(
 
     print(f"Saved {len(corrected)} corrected queries to {output_path}")
 
-    # 快速统计有多少被修改了
+    # Quick stats on how many queries were modified
     changed = sum(1 for s in corrected if s["corrected"] != s["asr_top1"])
     print(
         f"Modified: {changed}/{len(corrected)} ({changed / len(corrected) * 100:.1f}%)"
     )
 
-    # 看几个例子
+    # Show a few examples
     print("\nExamples of corrections:")
     count = 0
     for s in corrected:

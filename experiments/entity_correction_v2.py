@@ -1,5 +1,3 @@
-# method/entity_correction_v2.py
-
 import os
 import json
 from openai import OpenAI
@@ -9,7 +7,7 @@ from tqdm import tqdm
 client = OpenAI()
 
 
-# ── 1. 加载 KB entities ──────────────────────────────
+# ── 1. Load KB entities ──────────────────────────────
 def load_kb_entities(docs_dir: str) -> list:
     entities = []
     for f in os.listdir(docs_dir):
@@ -19,7 +17,7 @@ def load_kb_entities(docs_dir: str) -> list:
     return entities
 
 
-# ── 2. 从 query 提取 entities ────────────────────────
+# ── 2. Extract entities from query ───────────────────
 def extract_entities(text: str) -> list:
     response = client.chat.completions.create(
         model="gpt-4o-mini",
@@ -42,7 +40,7 @@ Entities:""",
         return []
 
 
-# ── 3. 匹配 KB entity ────────────────────────────────
+# ── 3. Match against KB entity ───────────────────────
 def match_entity(asr_entity: str, kb_entities: list, threshold: int = 70) -> str:
     matches = process.extract(
         asr_entity,
@@ -52,12 +50,12 @@ def match_entity(asr_entity: str, kb_entities: list, threshold: int = 70) -> str
     )
     if matches and matches[0][1] >= threshold:
         return matches[0][0]
-    return asr_entity  # 没找到就保留原样
+    return asr_entity  # keep original if no match passes threshold
 
 
-# ── 4. 修正 query ────────────────────────────────────
+# ── 4. Correct query ─────────────────────────────────
 def correct_query(asr_query: str, kb_entities: list, threshold: int = 70) -> dict:
-    # 提取 ASR query 里的 entities
+    # Extract entities from ASR query
     asr_entities = extract_entities(asr_query)
 
     corrected = asr_query
@@ -82,7 +80,7 @@ def correct_query(asr_query: str, kb_entities: list, threshold: int = 70) -> dic
     }
 
 
-# ── 5. 主实验 ────────────────────────────────────────
+# ── 5. Main experiment ───────────────────────────────
 def run_correction(
     nbest_path: str,
     docs_dir: str,
@@ -119,11 +117,11 @@ def run_correction(
     with open(output_path, "w") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
 
-    # 统计
+    # Stats
     changed = sum(1 for r in results if r["corrections"])
     print(f"\nModified: {changed}/{len(results)}")
 
-    # 例子
+    # Examples
     print("\nExamples:")
     count = 0
     for r in results:
