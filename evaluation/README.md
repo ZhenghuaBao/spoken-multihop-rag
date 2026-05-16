@@ -21,7 +21,8 @@ Two subpackages:
 | Paper artifact | Script | One-line invocation |
 |---|---|---|
 | Table 1 stats ($p$-values, 95% CIs, amplification contrast) | `bootstrap_significance.py` | `python evaluation/scripts/bootstrap_significance.py --results results/2wiki_1000.json --n-resamples 10000` |
-| Table 2 numerator (entity corruption rate, real vs synthetic NG) | `entity_corruption_analysis.py` | `python evaluation/scripts/entity_corruption_analysis.py` |
+| Table 2 (Error-type distribution within degradation cases, per accent) | `error_type_distribution.py` | `python evaluation/scripts/error_type_distribution.py --error-analysis results/error_analysis_2wiki_all.json --cell A --dataset-name 2WikiMultiHopQA` |
+| §III-A entity corruption rate (real NG vs synthetic NG) | `entity_corruption_analysis.py` | `python evaluation/scripts/entity_corruption_analysis.py` |
 | §V-G severity tier + conditional analysis (11.1% phonetic ceiling) | `severity_distribution.py` | `python evaluation/scripts/severity_distribution.py` |
 | Figure 3 (degradation stratified by WER bin) | `wer_stratified_degradation.py` | `python evaluation/scripts/wer_stratified_degradation.py --results results/2wiki_1000.json --accent ng` |
 | Table 3 (Mitigation: top-1 / N-best Decoding / Phonetic Correction, with recoveries) | `mitigation_table.py` | `python evaluation/scripts/mitigation_table.py --baseline-results results/2wiki_1000.json --nbest-results results/2wiki_1000_nbest.json --phonetic-results results/2wiki_1000_phonetic_v2_corr.json --accent ng` |

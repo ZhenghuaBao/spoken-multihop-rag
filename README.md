@@ -188,10 +188,11 @@ invocation strings.
 | Paper artifact | Script |
 |---|---|
 | Table 1 stats ($p$-values, CIs) | `evaluation/scripts/bootstrap_significance.py` |
-| Table 2 numerator (entity corruption rate) | `evaluation/scripts/entity_corruption_analysis.py` |
+| Table 2 (Error-type distribution per accent) | `evaluation/scripts/error_type_distribution.py` |
 | Table 3 (Mitigation: top-1 / N-best / Phonetic) | `evaluation/scripts/mitigation_table.py` |
-| §V-G phonetic severity + conditional analysis | `evaluation/scripts/severity_distribution.py` |
 | Figure 3 (WER-stratified degradation) | `evaluation/scripts/wer_stratified_degradation.py` |
+| §III-A entity corruption rate (real NG vs synth) | `evaluation/scripts/entity_corruption_analysis.py` |
+| §V-G phonetic severity + conditional analysis | `evaluation/scripts/severity_distribution.py` |
 | §Real-Speech Validation (1.08× ratio) | `evaluation/scripts/real_speech_validation.py` |
 
 ## 📁 Project Structure

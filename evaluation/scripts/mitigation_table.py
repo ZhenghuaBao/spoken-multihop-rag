@@ -105,10 +105,15 @@ def main():
 
     rows = []
     for name, c1, cn, cp, oc in methods:
-        oracle = cell_avg_f1(base, "oracle", oc)
-        top1 = cell_avg_f1(base, args.accent, c1)
-        nbest_f1 = cell_avg_f1(nbest, args.accent, cn)
-        phonetic = cell_avg_f1(phon, args.accent, cp)
+        # Round F1 to 3 decimals before deltas/recovery so the table is
+        # internally consistent (paper Table 3 numbers match the displayed
+        # 3-decimal F1 values, not the underlying full-precision means).
+        oracle = round(cell_avg_f1(base, "oracle", oc), 3)
+        top1 = round(cell_avg_f1(base, args.accent, c1), 3)
+        nbest_raw = cell_avg_f1(nbest, args.accent, cn)
+        phon_raw = cell_avg_f1(phon, args.accent, cp)
+        nbest_f1 = round(nbest_raw, 3) if nbest_raw >= 0 else nbest_raw
+        phonetic = round(phon_raw, 3) if phon_raw >= 0 else phon_raw
         if top1 < 0 or oracle < 0:
             print(f"{name:<14} (data missing)")
             continue
