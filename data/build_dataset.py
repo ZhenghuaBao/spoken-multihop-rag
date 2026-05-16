@@ -1,9 +1,25 @@
-import json
+"""
+Build a spoken-question dataset from a text-question JSON file using
+neural TTS across multiple English accent voices.
+
+Generic over any QA dataset whose queries JSON has the shape:
+    {"queries": [{"id": ..., "question": ...}, ...]}
+or simply a flat list of such dicts.
+
+Usage:
+    python data/build_dataset.py \\
+        --questions /path/to/test_queries.json \\
+        --output-dir data/<dataset>_spoken \\
+        --n 1000
+"""
+
 import asyncio
-import edge_tts
+import json
 from pathlib import Path
 
-# Accented voices only (US JennyNeural already generated)
+import edge_tts
+
+# Accented voices (Edge TTS).
 VOICES = {
     "us": "en-US-JennyNeural",
     "in": "en-IN-NeerjaNeural",
@@ -37,8 +53,8 @@ async def text_to_speech(
 
 
 async def add_speech_to_questions(
-    questions_json: str = r"E:\Projects\DualRAG\dataset\hotpotqa_1000_hf\test_queries.json",
-    output_dir: str = str(Path(__file__).parent / "hotpotqa_spoken"),
+    questions_json: str,
+    output_dir: str,
     n: int = 200,
 ):
     with open(questions_json, encoding="utf-8") as f:
@@ -95,16 +111,25 @@ async def add_speech_to_questions(
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--questions",
         type=str,
-        default=r"E:\Projects\DualRAG\dataset\hotpotqa_1000_hf\test_queries.json",
+        required=True,
+        help="Path to test_queries.json with the dataset's text questions",
     )
     parser.add_argument(
-        "--output-dir", type=str, default=str(Path(__file__).parent / "hotpotqa_spoken")
+        "--output-dir",
+        type=str,
+        required=True,
+        help="Directory to write audio/ and spoken_questions.json into",
     )
-    parser.add_argument("--n", type=int, default=200)
+    parser.add_argument(
+        "--n",
+        type=int,
+        default=200,
+        help="Number of questions to synthesize (default 200)",
+    )
     args = parser.parse_args()
     asyncio.run(
         add_speech_to_questions(
