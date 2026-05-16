@@ -181,14 +181,18 @@ python asr/transcribe_seamless_server.py \
 
 Each script reproduces one or more paper claims:
 
-| Paper claim | Script |
+Each script in `evaluation/scripts/` reproduces exactly one paper
+artifact. See [`evaluation/README.md`](evaluation/README.md) for full
+invocation strings.
+
+| Paper artifact | Script |
 |---|---|
-| Paired bootstrap + 95% CI | `evaluation/scripts/bootstrap_significance.py` |
-| WER-stratified degradation | `evaluation/scripts/wer_bucket_per_method.py` |
-| Entity corruption rate (real vs synth NG) | `evaluation/scripts/entity_corruption_analysis.py` |
-| Real-NG validation (Whisper transcription) | `evaluation/scripts/nigerian_validation.py` |
-| Phonetic severity + conditional | `evaluation/scripts/severity_distribution.py` |
-| N-best Decoding table | `evaluation/scripts/nbest_table.py` |
+| Table 1 stats ($p$-values, CIs) | `evaluation/scripts/bootstrap_significance.py` |
+| Table 2 numerator (entity corruption rate) | `evaluation/scripts/entity_corruption_analysis.py` |
+| Table 3 (Mitigation: top-1 / N-best / Phonetic) | `evaluation/scripts/mitigation_table.py` |
+| §V-G phonetic severity + conditional analysis | `evaluation/scripts/severity_distribution.py` |
+| Figure 3 (WER-stratified degradation) | `evaluation/scripts/wer_stratified_degradation.py` |
+| §Real-Speech Validation (1.08× ratio) | `evaluation/scripts/real_speech_validation.py` |
 
 ## 📁 Project Structure
 
