@@ -233,8 +233,9 @@ Key parameters (defaults match the paper):
 - **IRCoT** — Trivedi et al. 2023 (ACL).
 - **Whisper** — Radford et al. 2023 (ICML).
 - **SeamlessM4T** — Barrault et al. 2023.
-- **Common Voice / AfriSpeech-200** — accented speech corpora used in
-  validation and future-work directions.
+- **Nigerian-accented English speech dataset** —
+  [benjaminogbonna/nigerian_accented_english_dataset](https://huggingface.co/datasets/benjaminogbonna/nigerian_accented_english_dataset),
+  used for the real-speech validation in Section III-A.
 
 ## 📄 License
 
