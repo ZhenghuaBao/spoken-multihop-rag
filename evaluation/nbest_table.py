@@ -1,5 +1,5 @@
 """
-Extract N-best rescoring table for the paper.
+Extract N-best Decoding table for the paper.
 
 Reads result files containing cells A (Naive top-1), B (Naive N-best),
 C (HippoRAG top-1), D (HippoRAG N-best), and oracle E/F. Produces a
@@ -73,7 +73,7 @@ def main():
         ("IRCoT+Hippo", h_top1, j_nbest, oracle_hippo),
     ]
 
-    print("\n=== N-best Rescoring Table ===")
+    print("\n=== N-best Decoding Table ===")
     print(f"Accent: {args.accent.upper()}")
     print()
     print(
@@ -104,7 +104,7 @@ def main():
     print("=== LaTeX ===\n")
     print(r"\begin{table}[t]")
     print(
-        r"\caption{N-best rescoring results on \textsc{Dataset} under "
+        r"\caption{N-best Decoding results on \textsc{Dataset} under "
         + f"{args.accent.upper()} speech. Recovery is the fraction of the "
         + "Oracle--accent F1 gap closed by N-best.}"
     )

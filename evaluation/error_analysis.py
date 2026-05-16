@@ -1,6 +1,4 @@
 """
-Error analysis for Spoken Multi-hop RAG experiments.
-
 Compares Oracle vs ASR-accent results per question, categorizes ASR error types,
 breaks down by question metadata, and identifies worst-case degradation patterns.
 

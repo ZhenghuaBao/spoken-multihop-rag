@@ -30,7 +30,7 @@ The suite covers:
 - **4 English accents**: US, IN, PH, NG (synthesized via neural TTS)
 - **4 RAG configurations**: Naive RAG, HippoRAG2, IRCoT+Naive,
   IRCoT+HippoRAG2
-- **2 lightweight mitigations**: N-best rescoring, phonetic entity
+- **2 lightweight mitigations**: N-best Decoding, phonetic entity
   correction
 - **Cross-system ASR validation**: Whisper-large-v3 + SeamlessM4T-v2-large
 - **Real-speech validation**: 500 Nigerian-English utterances
@@ -68,7 +68,7 @@ If you use this code or build on our findings, please cite:
   entity accounts for $87\%$–$94\%$ of accent-induced degradation on
   2WikiMultiHopQA, and remains the dominant failure mode on the
   other two benchmarks.
-- **🧪 Mitigation diagnostics**: N-best rescoring recovers ~0% of the
+- **🧪 Mitigation diagnostics**: N-best Decoding recovers ~0% of the
   gap; phonetic correction recovers $4\%$–$11\%$, preferentially on
   graph-based methods. Together they isolate the residual to
   structural rather than stochastic or surface-level error.
@@ -190,7 +190,7 @@ Each script reproduces one or more paper claims:
 | Real-NG validation (Whisper transcription) | `evaluation/nigerian_validation.py` |
 | Phonetic severity + conditional | `evaluation/severity_distribution.py` |
 | Hop-count breakdown (MuSiQue) | `evaluation/hop_count_breakdown.py` |
-| N-best rescoring table | `evaluation/nbest_table.py` |
+| N-best Decoding table | `evaluation/nbest_table.py` |
 | Cascade case-study examples | `evaluation/find_amplification_examples.py` |
 
 ## 📁 Project Structure
