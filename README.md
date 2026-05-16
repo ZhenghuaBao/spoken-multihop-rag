@@ -183,15 +183,12 @@ Each script reproduces one or more paper claims:
 
 | Paper claim | Script |
 |---|---|
-| Paired bootstrap + 95% CI | `evaluation/bootstrap_significance.py` |
-| WER-stratified degradation | `evaluation/wer_bucket_per_method.py` |
-| WER-threshold routing experiment | `evaluation/wer_routing_simulation.py` |
-| Entity corruption rate (real vs synth NG) | `evaluation/entity_corruption_analysis.py` |
-| Real-NG validation (Whisper transcription) | `evaluation/nigerian_validation.py` |
-| Phonetic severity + conditional | `evaluation/severity_distribution.py` |
-| Hop-count breakdown (MuSiQue) | `evaluation/hop_count_breakdown.py` |
-| N-best Decoding table | `evaluation/nbest_table.py` |
-| Cascade case-study examples | `evaluation/find_amplification_examples.py` |
+| Paired bootstrap + 95% CI | `evaluation/scripts/bootstrap_significance.py` |
+| WER-stratified degradation | `evaluation/scripts/wer_bucket_per_method.py` |
+| Entity corruption rate (real vs synth NG) | `evaluation/scripts/entity_corruption_analysis.py` |
+| Real-NG validation (Whisper transcription) | `evaluation/scripts/nigerian_validation.py` |
+| Phonetic severity + conditional | `evaluation/scripts/severity_distribution.py` |
+| N-best Decoding table | `evaluation/scripts/nbest_table.py` |
 
 ## 📁 Project Structure
 
@@ -199,7 +196,9 @@ Each script reproduces one or more paper claims:
 spoken-multihop-rag/
 ├── asr/                    # Speech transcription (Whisper, SeamlessM4T)
 ├── data/                   # Dataset build/load utilities
-├── evaluation/             # Metrics, error categorization, analyses
+├── evaluation/
+│   ├── core/               # Metrics + error categorization (pipeline imports)
+│   └── scripts/            # One-shot analyses (each → 1 paper artifact)
 ├── experiments/            # Main runner + mitigation experiments
 ├── retrieval/              # Dense + HippoRAG2 wrappers
 ├── results/                # Per-cell outputs (gitignored)

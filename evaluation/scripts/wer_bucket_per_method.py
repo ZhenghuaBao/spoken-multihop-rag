@@ -18,9 +18,9 @@ import io
 from collections import defaultdict
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from evaluation.metrics import f1_score  # noqa: E402
+from evaluation.core.metrics import f1_score  # noqa: E402
 
 sys.stdout = io.TextIOWrapper(
     sys.stdout.buffer, encoding="utf-8", errors="replace", line_buffering=True

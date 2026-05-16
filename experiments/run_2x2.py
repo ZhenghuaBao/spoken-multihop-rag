@@ -31,7 +31,7 @@ sys.path.insert(0, str(_ROOT))
 sys.path.insert(0, str(_PROJECT_ROOT))
 
 from retrieval.naive_rag import NaiveRAG  # noqa: E402
-from evaluation.metrics import exact_match, f1_score, word_error_rate  # noqa: E402
+from evaluation.core.metrics import exact_match, f1_score, word_error_rate  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
