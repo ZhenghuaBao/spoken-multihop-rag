@@ -1,10 +1,3 @@
-"""
-Load spoken HotpotQA dataset from Feng et al. (2025).
-
-Dataset: the-bird-F/HotpotQA_RGBzh_speech
-Contains audio recordings of HotpotQA questions + original text context.
-"""
-
 import json
 import random
 from pathlib import Path

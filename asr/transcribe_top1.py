@@ -1,7 +1,7 @@
 """
 ASR top-1 transcription using Whisper large-v3.
 
-Takes audio from the spoken HotpotQA dataset and produces
+Takes audio from the spoken dataset and produces
 single-best transcription for each question.
 """
 

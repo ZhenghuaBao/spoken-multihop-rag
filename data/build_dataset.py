@@ -1,5 +1,3 @@
-# data/build_dataset.py
-
 import json
 import asyncio
 import edge_tts
