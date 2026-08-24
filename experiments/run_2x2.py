@@ -3,9 +3,12 @@
 
               | Oracle    | ASR top-1 | ASR N-best |
   Naive RAG   |     E     |     A     |     B      |
-  IRCoT+Naive |     -     |     G     |     -      |
   HippoRAG    |     F     |     C     |     D      |
-  IRCoT+Hippo |     -     |     H     |     -      |
+  IRCoT+Naive |   G [1]   |     G     |     I      |
+  IRCoT+Hippo |   H [1]   |     H     |     J      |
+
+  [1] The IRCoT rows have no separate oracle cell letter: run G / H with
+      --accent oracle to get their clean-text condition.
 
 Usage:
     python experiments/run_2x2.py --cells E F              # Oracle only
@@ -25,10 +28,8 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 # Setup path
-_ROOT = Path(__file__).parent.parent
-_PROJECT_ROOT = _ROOT.parent  # DualRAG root
+_ROOT = Path(__file__).parent.parent  # repository root
 sys.path.insert(0, str(_ROOT))
-sys.path.insert(0, str(_PROJECT_ROOT))
 
 from retrieval.naive_rag import NaiveRAG  # noqa: E402
 from evaluation.core.metrics import exact_match, f1_score, word_error_rate  # noqa: E402
@@ -39,6 +40,29 @@ from evaluation.core.metrics import exact_match, f1_score, word_error_rate  # no
 # ---------------------------------------------------------------------------
 
 ACCENTS = ["us", "in", "ph", "ng"]
+
+
+def _check_inputs_exist(paths: Dict[str, Path]) -> None:
+    """Fail early with an actionable message if required inputs are absent.
+
+    None of the speech/benchmark inputs ship inside the repository, so a
+    fresh clone hits this before any API call is made.
+    """
+    missing = {flag: p for flag, p in paths.items() if not p.exists()}
+    if not missing:
+        return
+    lines = [
+        "Missing required input(s). Nothing was run.",
+        "",
+    ]
+    lines += [f"  {flag}\n      {p}" for flag, p in missing.items()]
+    lines += [
+        "",
+        "Speech transcripts, benchmark files and indexes are not bundled",
+        "with the code. See the 'Datasets' section of README.md for how to",
+        "obtain or regenerate them, then pass the paths explicitly.",
+    ]
+    raise SystemExit("\n".join(lines))
 
 
 def load_accent_results(path: Path) -> List[Dict]:
@@ -1444,19 +1468,20 @@ def main():
     parser.add_argument(
         "--accent-json",
         type=str,
-        default=str(_ROOT / "data" / "accent_nbest_results.json"),
+        default=str(
+            _ROOT / "data" / "hotpotqa_spoken" / "accent_nbest_results_hotpotqa.json"
+        ),
+        help="ASR transcripts for one benchmark (see README 'Expected local layout')",
     )
     parser.add_argument(
         "--ground-truth",
         type=str,
-        default=str(
-            _PROJECT_ROOT / "dataset" / "hotpotqa_1000_hf" / "ground_truth.json"
-        ),
+        default=str(_ROOT / "dataset" / "hotpotqa_1000_hf" / "ground_truth.json"),
     )
     parser.add_argument(
         "--docs-dir",
         type=str,
-        default=str(_PROJECT_ROOT / "dataset" / "hotpotqa_1000_hf" / "documents"),
+        default=str(_ROOT / "dataset" / "hotpotqa_1000_hf" / "documents"),
     )
 
     # Experiment config
@@ -1491,20 +1516,26 @@ def main():
     parser.add_argument(
         "--hipporag-dir",
         type=str,
-        default=str(_PROJECT_ROOT / "hipporag_outputs" / "hotpotqa"),
+        default=str(_ROOT / "hipporag_outputs" / "hotpotqa"),
     )
     parser.add_argument(
         "--naive-index",
         type=str,
         default=str(
-            _PROJECT_ROOT
-            / "vector_store"
-            / "conventional_vector_chunk400_hotpotqa_1000_hf"
+            _ROOT / "vector_store" / "conventional_vector_chunk400_hotpotqa_1000_hf"
         ),
     )
     parser.add_argument("--force-reindex", action="store_true")
     parser.add_argument("--output", type=str, default=None)
     args = parser.parse_args()
+
+    _check_inputs_exist(
+        {
+            "--accent-json": Path(args.accent_json),
+            "--ground-truth": Path(args.ground_truth),
+            "--docs-dir": Path(args.docs_dir),
+        }
+    )
 
     cells_to_run = set(c.upper() for c in args.cells)
     if args.accent == "all":

@@ -18,6 +18,9 @@ env/
 *.swp
 *.swo
 
+# Tooling caches
+.ruff_cache/
+
 # OS
 .DS_Store
 Thumbs.db
@@ -40,6 +43,13 @@ results/
 
 # Local data dumps
 data/*_spoken/
+
+# Benchmark files and prebuilt indexes. Default paths now resolve inside the
+# repository, so ignore them here to prevent accidentally committing GBs.
+# Revisit when deciding what ships as the released artifact.
+dataset/
+hipporag_outputs/
+vector_store/
 
 # Experiment logs (regenerable, often large)
 logs/
