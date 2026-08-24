@@ -20,15 +20,21 @@ Inputs:
 Output: results/entity_corruption_analysis.json
 
 Usage:
-    python evaluation/entity_corruption_analysis.py
+    python evaluation/scripts/entity_corruption_analysis.py
+
+All input/output paths default to the repository-relative locations above
+and can be overridden with --real-ng / --synth-ng / --output.
 """
 
+import argparse
 import json
 import sys
 import io
 from pathlib import Path
 
 import spacy
+
+_ROOT = Path(__file__).resolve().parent.parent.parent  # repository root
 
 sys.stdout = io.TextIOWrapper(
     sys.stdout.buffer, encoding="utf-8", errors="replace", line_buffering=True
@@ -194,13 +200,41 @@ def run_synth_ng(nlp, path):
     return aggregate(per_utt)
 
 
-def main():
-    project_root = Path(__file__).resolve().parent.parent
-    real_ng_path = project_root / "results" / "nigerian_validation.json"
-    synth_ng_path = (
-        project_root / "data" / "2wiki_spoken" / "accent_nbest_results_2wiki.json"
+def _parse_args():
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument(
+        "--real-ng",
+        type=Path,
+        default=_ROOT / "results" / "nigerian_validation.json",
+        help="Output of evaluation/scripts/real_speech_validation.py",
     )
-    output_path = project_root / "results" / "entity_corruption_analysis.json"
+    p.add_argument(
+        "--synth-ng",
+        type=Path,
+        default=_ROOT / "data" / "2wiki_spoken" / "accent_nbest_results_2wiki.json",
+        help="2WikiMultiHopQA accent transcripts (gold question + accents.ng.top1)",
+    )
+    p.add_argument(
+        "--output",
+        type=Path,
+        default=_ROOT / "results" / "entity_corruption_analysis.json",
+    )
+    return p.parse_args()
+
+
+def main():
+    args = _parse_args()
+    real_ng_path = args.real_ng
+    synth_ng_path = args.synth_ng
+    output_path = args.output
+
+    for label, path in (("--real-ng", real_ng_path), ("--synth-ng", synth_ng_path)):
+        if not path.exists():
+            raise SystemExit(
+                f"Missing input {label}: {path}\n"
+                "Speech transcripts are not bundled with the code. See the "
+                "'Datasets' section of README.md."
+            )
 
     print("Loading spaCy en_core_web_sm...")
     nlp = spacy.load("en_core_web_sm")

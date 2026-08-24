@@ -21,15 +21,22 @@ Inputs:
 Output: results/severity_and_conditional_analysis.json
 
 Usage:
-    python evaluation/severity_distribution.py
+    python evaluation/scripts/severity_distribution.py
+
+All input/output paths default to the repository-relative locations above
+and can be overridden with --synth-ng / --corrected / --baseline-results /
+--phonetic-results / --output.
 """
 
+import argparse
 import json
 import sys
 import io
 from pathlib import Path
 
 import spacy
+
+_ROOT = Path(__file__).resolve().parent.parent.parent  # repository root
 
 sys.stdout = io.TextIOWrapper(
     sys.stdout.buffer, encoding="utf-8", errors="replace", line_buffering=True
@@ -234,20 +241,62 @@ def run_conditional(orig_path, corr_path, main_path, phonetic_rag_path):
     return out
 
 
+def _parse_args():
+    _data = _ROOT / "data" / "2wiki_spoken"
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument(
+        "--synth-ng",
+        type=Path,
+        default=_data / "accent_nbest_results_2wiki.json",
+        help="2WikiMultiHopQA accent transcripts (gold question + accents.ng.top1)",
+    )
+    p.add_argument(
+        "--corrected",
+        type=Path,
+        default=_data / "accent_nbest_results_2wiki_phonetic_v2_full.json",
+        help="Phonetic-corrected NG queries",
+    )
+    p.add_argument(
+        "--baseline-results",
+        type=Path,
+        default=_ROOT / "results" / "2wiki_1000.json",
+        help="Per-question F1 for the original NG condition",
+    )
+    p.add_argument(
+        "--phonetic-results",
+        type=Path,
+        default=_ROOT / "results" / "2wiki_1000_phonetic_v2_corr.json",
+        help="Per-question F1 after phonetic correction",
+    )
+    p.add_argument(
+        "--output",
+        type=Path,
+        default=_ROOT / "results" / "severity_and_conditional_analysis.json",
+    )
+    return p.parse_args()
+
+
 def main():
-    project_root = Path(__file__).resolve().parent.parent
-    synth_ng_path = (
-        project_root / "data" / "2wiki_spoken" / "accent_nbest_results_2wiki.json"
-    )
-    corr_path = (
-        project_root
-        / "data"
-        / "2wiki_spoken"
-        / "accent_nbest_results_2wiki_phonetic_v2_full.json"
-    )
-    main_path = project_root / "results" / "2wiki_1000.json"
-    pho_path = project_root / "results" / "2wiki_1000_phonetic_v2_corr.json"
-    output_path = project_root / "results" / "severity_and_conditional_analysis.json"
+    args = _parse_args()
+    synth_ng_path = args.synth_ng
+    corr_path = args.corrected
+    main_path = args.baseline_results
+    pho_path = args.phonetic_results
+    output_path = args.output
+
+    required = {
+        "--synth-ng": synth_ng_path,
+        "--corrected": corr_path,
+        "--baseline-results": main_path,
+        "--phonetic-results": pho_path,
+    }
+    for label, path in required.items():
+        if not path.exists():
+            raise SystemExit(
+                f"Missing input {label}: {path}\n"
+                "Transcripts and per-question results are not bundled with "
+                "the code. See the 'Datasets' section of README.md."
+            )
 
     print("Loading spaCy en_core_web_sm...")
     nlp = spacy.load("en_core_web_sm")
