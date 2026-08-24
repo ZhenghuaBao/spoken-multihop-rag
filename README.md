@@ -214,12 +214,8 @@ strings.
 | Figure 3 (WER-stratified degradation) | `wer_stratified_degradation.py` |
 | Appendix E (entity corruption, real vs synthetic NG) | `entity_corruption_analysis.py` |
 | Appendix E (real-speech WER) | `real_speech_validation.py` |
-| Not in the paper: entity severity tiers + conditional analysis | `severity_distribution.py` |
 
 All paths are relative to `evaluation/scripts/`.
-`severity_distribution.py` is kept because it documents how the phonetic
-correction ceiling was diagnosed, but the corresponding analysis was cut
-from the final paper.
 
 ## 📁 Project Structure
 

@@ -24,7 +24,6 @@ Two subpackages:
 | Table 2 (Error-type distribution within degradation cases, per accent) | `error_type_distribution.py` | `python evaluation/scripts/error_type_distribution.py --error-analysis results/error_analysis_2wiki_all.json --cell A --dataset-name 2WikiMultiHopQA` |
 | Table 8 (entity corruption per method and accent) | `cross_method_entity_table.py` | `python evaluation/scripts/cross_method_entity_table.py` |
 | Appendix E (entity corruption, real NG vs synthetic NG) | `entity_corruption_analysis.py` | `python evaluation/scripts/entity_corruption_analysis.py` |
-| Not in the paper: severity tiers + conditional analysis | `severity_distribution.py` | `python evaluation/scripts/severity_distribution.py` |
 | Figure 3 (degradation stratified by WER bin) | `wer_stratified_degradation.py` | `python evaluation/scripts/wer_stratified_degradation.py --results results/2wiki_1000.json --accent ng` |
 | Table 3 (Mitigation: top-1 / N-best Decoding / Phonetic Correction, with recoveries) | `mitigation_table.py` | `python evaluation/scripts/mitigation_table.py --baseline-results results/2wiki_1000.json --nbest-results results/2wiki_1000_nbest.json --phonetic-results results/2wiki_1000_phonetic_v2_corr.json --accent ng` |
 | Appendix E (real-speech WER; feeds the real-vs-synthetic comparison) | `real_speech_validation.py` | `python evaluation/scripts/real_speech_validation.py --n-samples 500 --output results/nigerian_validation.json` |
@@ -34,11 +33,11 @@ Two subpackages:
 - All `--results` paths refer to JSONs produced by
   `experiments/run_2x2.py`; see the top-level `README.md` for how to
   generate them.
-- `cross_method_entity_table.py`, `entity_corruption_analysis.py` and
-  `severity_distribution.py` run with no arguments because every path
-  defaults to its repository-relative location. Pass `--help` to see the
-  flags for pointing them elsewhere. All three fail immediately, naming
-  the missing flag and path, if an input is absent.
+- `cross_method_entity_table.py` and `entity_corruption_analysis.py` run
+  with no arguments because every path defaults to its
+  repository-relative location. Pass `--help` to see the flags for
+  pointing them elsewhere. Both fail immediately, naming the missing flag
+  and path, if an input is absent.
 - `cross_method_entity_table.py` needs one
   `error_analysis_<benchmark>_all_methods.json` per benchmark, each
   produced by `core/error_analysis.py --cross-method`. It prints both a
