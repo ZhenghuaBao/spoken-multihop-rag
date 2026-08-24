@@ -148,16 +148,29 @@ if __name__ == "__main__":
     import sys
 
     sys.path.insert(0, str(Path(__file__).parent.parent))
-    from data.load_dataset import load_spoken_hotpotqa
+    from data.load_dataset import load_spoken_qa
 
     parser = argparse.ArgumentParser(description="Whisper top-1 transcription")
+    parser.add_argument(
+        "--hf-dataset",
+        type=str,
+        required=True,
+        help="HuggingFace dataset identifier of the spoken QA set",
+    )
+    parser.add_argument("--split", type=str, default="test")
     parser.add_argument("--samples", type=int, default=200)
+    parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--model", type=str, default="large-v3")
     parser.add_argument(
         "--output", type=str, default="results/transcriptions_top1.json"
     )
     args = parser.parse_args()
 
-    records = load_spoken_hotpotqa(num_samples=args.samples)
+    records = load_spoken_qa(
+        hf_dataset=args.hf_dataset,
+        num_samples=args.samples,
+        seed=args.seed,
+        split=args.split,
+    )
     output = Path(__file__).parent.parent / args.output
     transcribe_dataset(records, model_name=args.model, output_path=output)

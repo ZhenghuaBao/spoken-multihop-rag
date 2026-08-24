@@ -264,10 +264,18 @@ if __name__ == "__main__":
     import sys
 
     sys.path.insert(0, str(Path(__file__).parent.parent))
-    from data.load_dataset import load_spoken_hotpotqa
+    from data.load_dataset import load_spoken_qa
 
     parser = argparse.ArgumentParser(description="Whisper N-best transcription")
+    parser.add_argument(
+        "--hf-dataset",
+        type=str,
+        required=True,
+        help="HuggingFace dataset identifier of the spoken QA set",
+    )
+    parser.add_argument("--split", type=str, default="test")
     parser.add_argument("--samples", type=int, default=200)
+    parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--model", type=str, default="large-v3")
     parser.add_argument("--beam-size", type=int, default=5)
     parser.add_argument(
@@ -275,7 +283,12 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    records = load_spoken_hotpotqa(num_samples=args.samples)
+    records = load_spoken_qa(
+        hf_dataset=args.hf_dataset,
+        num_samples=args.samples,
+        seed=args.seed,
+        split=args.split,
+    )
     output = Path(__file__).parent.parent / args.output
     transcribe_dataset_nbest(
         records, model_name=args.model, beam_size=args.beam_size, output_path=output
