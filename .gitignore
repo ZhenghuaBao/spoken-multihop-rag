@@ -53,3 +53,7 @@ vector_store/
 
 # Experiment logs (regenerable, often large)
 logs/
+
+# Staging area for the HuggingFace dataset release (published on the Hub,
+# not from this repository)
+hf_release/
