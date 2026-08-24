@@ -15,7 +15,7 @@ Improvements over v1 (phonetic_correction.py):
 Usage:
     python experiments/phonetic_correction_v2.py \\
         --asr-data data/2wiki_spoken/accent_nbest_results_2wiki.json \\
-        --docs-dir ../dataset/2wikimultihopqa_1000/documents \\
+        --docs-dir dataset/2wikimultihopqa_1000/documents \\
         --accent ng \\
         --jaccard 0.4 --edit-thresh 75 --fallback-thresh 85 \\
         --use-spacy \\

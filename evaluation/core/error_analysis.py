@@ -3,9 +3,9 @@ Compares Oracle vs ASR-accent results per question, categorizes ASR error types,
 breaks down by question metadata, and identifies worst-case degradation patterns.
 
 Usage:
-    python evaluation/error_analysis.py \
+    python evaluation/core/error_analysis.py \
         --results results/experiment_all+oracle_20260330_224620.json \
-        --ground-truth ../dataset/2wikimultihopqa_1000/ground_truth.json \
+        --ground-truth dataset/2wikimultihopqa_1000/ground_truth.json \
         --asr-data data/accent_nbest_results_2wiki.json \
         --accent ng --cross-method
 """

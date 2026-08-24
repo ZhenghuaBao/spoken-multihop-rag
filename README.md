@@ -64,10 +64,10 @@ If you use this code or build on our findings, please cite:
   (graph + iterative) widens the Oracle-to-accent F1 gap by
   $36\%$–$67\%$ relative to naive dense retrieval, on all three
   benchmarks.
-- **🏷️ Entity corruption dominates**: corruption of a single named
-  entity accounts for $87\%$–$94\%$ of accent-induced degradation on
-  2WikiMultiHopQA, and remains the dominant failure mode on the
-  other two benchmarks.
+- **🏷️ Entity corruption dominates**: corruption of one or more named
+  entities is the dominant degradation category across all four
+  retrieval configurations, at $87\%$–$96\%$ on 2WikiMultiHopQA,
+  $67\%$–$82\%$ on HotpotQA, and $54\%$–$78\%$ on MuSiQue.
 - **🧪 Mitigation diagnostics**: N-best Decoding recovers ~0% of the
   gap; phonetic correction recovers $4\%$–$11\%$, preferentially on
   graph-based methods. Together they isolate the residual to
@@ -91,7 +91,9 @@ pip install -r requirements.txt
 python -m spacy download en_core_web_sm
 ```
 
-Set OpenAI credentials in your environment or a local `.env.local`:
+The OpenAI client is constructed with no explicit credentials, so it reads
+`OPENAI_API_KEY` from the process environment. Nothing in the repository
+loads a `.env` file, so exporting the variable is required:
 
 ```bash
 export OPENAI_API_KEY=sk-...
@@ -109,7 +111,7 @@ python experiments/run_2x2.py \
     --cells A C G H \
     --accent all+oracle \
     --accent-json data/hotpotqa_spoken/accent_nbest_results_hotpotqa.json \
-    --ground-truth ../dataset/hotpotqa_1000_hf/ground_truth.json \
+    --ground-truth dataset/hotpotqa_1000_hf/ground_truth.json \
     --output results/hotpotqa_1000.json
 ```
 
@@ -126,6 +128,26 @@ Oracle + 4 accents × 4 methods.
 
 All three are sampled uniformly at random from the official
 development split with seed `42`.
+
+### Expected local layout
+
+Speech audio, ASR transcripts, benchmark files and prebuilt indexes are
+**not bundled with the code** (they are large, and the transcripts depend
+on a pinned ASR checkpoint). Every script takes explicit path arguments
+whose defaults resolve inside the repository, so the layout below is what
+a full local checkout looks like:
+
+```
+dataset/<benchmark>/ground_truth.json   # answers, from the prepare scripts
+dataset/<benchmark>/documents/          # retrieval corpus (one .txt per doc)
+data/<benchmark>_spoken/audio/<accent>/ # synthesized .wav, from data/build_dataset.py
+data/<benchmark>_spoken/accent_nbest_results_<benchmark>.json  # ASR transcripts
+hipporag_outputs/<benchmark>/           # HippoRAG2 index
+vector_store/<index-name>/              # FAISS index for naive dense retrieval
+```
+
+All of these are gitignored. Running a script with a missing input fails
+immediately with the flag and path it expected, before any API call.
 
 Accent synthesis uses Microsoft Edge TTS:
 
@@ -163,7 +185,7 @@ Cell codes:
 ```bash
 python experiments/phonetic_correction_v2.py \
     --asr-data data/2wiki_spoken/accent_nbest_results_2wiki.json \
-    --docs-dir ../dataset/2wikimultihopqa_1000/documents \
+    --docs-dir dataset/2wikimultihopqa_1000/documents \
     --accent ng --use-spacy \
     --jaccard 0.4 --edit-thresh 75 --fallback-thresh 85 \
     --output data/2wiki_spoken/accent_nbest_results_2wiki_phonetic_v2.json
@@ -179,21 +201,25 @@ python asr/transcribe_seamless_server.py \
 
 ## 🧪 Analysis Scripts
 
-Each script reproduces one or more paper claims:
-
-Each script in `evaluation/scripts/` reproduces exactly one paper
-artifact. See [`evaluation/README.md`](evaluation/README.md) for full
-invocation strings.
+Each script in `evaluation/scripts/` reproduces one paper artifact. See
+[`evaluation/README.md`](evaluation/README.md) for full invocation
+strings.
 
 | Paper artifact | Script |
 |---|---|
-| Table 1 stats ($p$-values, CIs) | `evaluation/scripts/bootstrap_significance.py` |
-| Table 2 (Error-type distribution per accent) | `evaluation/scripts/error_type_distribution.py` |
-| Table 3 (Mitigation: top-1 / N-best / Phonetic) | `evaluation/scripts/mitigation_table.py` |
-| Figure 3 (WER-stratified degradation) | `evaluation/scripts/wer_stratified_degradation.py` |
-| §III-A entity corruption rate (real NG vs synth) | `evaluation/scripts/entity_corruption_analysis.py` |
-| §V-G phonetic severity + conditional analysis | `evaluation/scripts/severity_distribution.py` |
-| §Real-Speech Validation (1.08× ratio) | `evaluation/scripts/real_speech_validation.py` |
+| Table 1 stats ($p$-values, CIs) | `bootstrap_significance.py` |
+| Table 2 (Error-type distribution per accent) | `error_type_distribution.py` |
+| Table 3 (Mitigation: top-1 / N-best / Phonetic) | `mitigation_table.py` |
+| Table 8 (Entity corruption per method and accent) | `cross_method_entity_table.py` |
+| Figure 3 (WER-stratified degradation) | `wer_stratified_degradation.py` |
+| Appendix E (entity corruption, real vs synthetic NG) | `entity_corruption_analysis.py` |
+| Appendix E (real-speech WER) | `real_speech_validation.py` |
+| Not in the paper: entity severity tiers + conditional analysis | `severity_distribution.py` |
+
+All paths are relative to `evaluation/scripts/`.
+`severity_distribution.py` is kept because it documents how the phonetic
+correction ceiling was diagnosed, but the corresponding analysis was cut
+from the final paper.
 
 ## 📁 Project Structure
 
@@ -206,6 +232,7 @@ spoken-multihop-rag/
 │   └── scripts/            # One-shot analyses (each → 1 paper artifact)
 ├── experiments/            # Main runner + mitigation experiments
 ├── retrieval/              # Dense + HippoRAG2 wrappers
+├── dataset/                # Benchmark ground truth + corpora (gitignored)
 ├── results/                # Per-cell outputs (gitignored)
 ├── logs/                   # Run logs (gitignored)
 ├── figure/                 # README assets

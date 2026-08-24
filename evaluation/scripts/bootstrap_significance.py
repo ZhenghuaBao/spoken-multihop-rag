@@ -7,7 +7,7 @@ Tests two claims:
      |Δ F1| of simple methods (Naive RAG) -- i.e., amplification is real.
 
 Usage:
-    python evaluation/bootstrap_significance.py \
+    python evaluation/scripts/bootstrap_significance.py \
         --results results/2wiki_1000.json \
         --n-resamples 10000
 """

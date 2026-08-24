@@ -10,7 +10,7 @@ We bypass torchcodec by setting decode=False on the audio column and
 decoding mp3 bytes manually with librosa.
 
 Usage:
-    python evaluation/nigerian_validation.py \
+    python evaluation/scripts/real_speech_validation.py \
         --n-samples 500 \
         --output results/nigerian_validation.json
 """
