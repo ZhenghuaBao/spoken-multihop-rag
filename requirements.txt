@@ -6,7 +6,11 @@ tqdm
 
 # ASR
 openai-whisper
+transformers        # SeamlessM4T-v2, Whisper (HF checkpoints)
+sentencepiece       # required by the SeamlessM4T-v2 tokenizer
 librosa
+soundfile
+jiwer               # WER for real-speech validation
 
 # TTS (dataset generation)
 edge-tts
@@ -23,8 +27,10 @@ hipporag
 # Dataset
 datasets
 
-# Entity correction
+# Entity / phonetic correction
 rapidfuzz
+metaphone           # double metaphone codes
+spacy               # NER; also run: python -m spacy download en_core_web_sm
 
 # Dev
 pre-commit
