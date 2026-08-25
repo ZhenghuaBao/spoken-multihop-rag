@@ -2,9 +2,12 @@
 
 # Spoken Multi-hop RAG
 
-_Better Retrieval, Worse Robustness: How Multi-hop RAG Amplifies ASR Errors_
+_Better Retrieval, Worse Robustness: How Multi-hop RAG Amplifies Upstream ASR Errors_
 
-[![Paper](https://img.shields.io/badge/arXiv-Coming%20Soon-red)](https://arxiv.org/)
+EMNLP 2026, Main Conference
+
+[![arXiv](https://img.shields.io/badge/arXiv-2608.22872-b31b1b.svg)](https://arxiv.org/abs/2608.22872)
+[![Dataset](https://img.shields.io/badge/🤗%20Dataset-spoken--multihop--rag-yellow.svg)](https://huggingface.co/datasets/KingZ23/spoken-multihop-rag)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10+-green.svg)](https://python.org)
 [![Whisper](https://img.shields.io/badge/ASR-Whisper--large--v3-orange.svg)](https://github.com/openai/whisper)
@@ -49,14 +52,18 @@ The suite covers:
 If you use this code or build on our findings, please cite:
 
 ```bibtex
-@inproceedings{TODO_citekey,
-  title     = {Better Retrieval, Worse Robustness: How Multi-hop RAG Amplifies ASR Errors},
-  author    = {TODO: authors},
-  booktitle = {TODO: venue},
-  year      = {TODO},
-  url       = {TODO: arxiv / anthology URL}
+@inproceedings{bao2026better,
+  title     = {Better Retrieval, Worse Robustness: How Multi-hop {RAG} Amplifies Upstream {ASR} Errors},
+  author    = {Bao, Zhenghua},
+  booktitle = {Proceedings of the 2026 Conference on Empirical Methods in Natural Language Processing},
+  year      = {2026},
+  note      = {To appear},
+  url       = {https://arxiv.org/abs/2608.22872}
 }
 ```
+
+Once the ACL Anthology entry is live, replace this with the Anthology
+version and drop the `note` field.
 
 ## ✨ Key Findings
 

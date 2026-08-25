@@ -1,0 +1,43 @@
+cff-version: 1.2.0
+message: >-
+  If you use this code or build on our findings, please cite the paper below.
+title: Spoken Multi-hop RAG
+abstract: >-
+  Evaluation suite for studying how upstream ASR errors propagate through
+  multi-hop retrieval-augmented generation, covering three multi-hop QA
+  benchmarks, four English accents, and four RAG configurations.
+type: software
+authors:
+  - family-names: Bao
+    given-names: Zhenghua
+    email: zheng.hua.b@gmail.com
+    affiliation: Continuum AI
+repository-code: https://github.com/ZhenghuaBao/spoken-multihop-rag
+license: Apache-2.0
+keywords:
+  - retrieval-augmented-generation
+  - multi-hop-qa
+  - speech-recognition
+  - asr-robustness
+  - accented-speech
+preferred-citation:
+  type: conference-paper
+  title: >-
+    Better Retrieval, Worse Robustness: How Multi-hop RAG Amplifies Upstream
+    ASR Errors
+  authors:
+    - family-names: Bao
+      given-names: Zhenghua
+      email: zheng.hua.b@gmail.com
+      affiliation: Continuum AI
+  collection-title: >-
+    Proceedings of the 2026 Conference on Empirical Methods in Natural
+    Language Processing
+  collection-type: proceedings
+  year: 2026
+  url: https://arxiv.org/abs/2608.22872
+  identifiers:
+    - type: other
+      value: arXiv:2608.22872
+      description: arXiv preprint
+  notes: To appear. Accepted to EMNLP 2026, Main Conference.
