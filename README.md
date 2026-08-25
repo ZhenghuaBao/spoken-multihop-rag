@@ -133,8 +133,8 @@ Oracle + 4 accents × 4 methods.
 | **2WikiMultiHopQA** | Wikipedia | 1000 | + compositional, inference |
 | **MuSiQue** | Wikipedia | 1000 | 2-, 3-, 4-hop compositions |
 
-All three are sampled uniformly at random from the official
-development split with seed `42`.
+All three are sampled uniformly at random from each benchmark's official
+validation set with seed `42`.
 
 ### Expected local layout
 
@@ -246,7 +246,8 @@ spoken-multihop-rag/
 
 ## ⚙️ Configuration
 
-Key parameters (defaults match the paper):
+Key parameters. These are the defaults used for every result reported in
+the paper:
 
 | Parameter | Default | Where |
 |---|---|---|
@@ -272,8 +273,37 @@ Key parameters (defaults match the paper):
 
 ## 📄 License
 
-This project is released under the
+The code in this repository is released under the
 [Apache License 2.0](LICENSE). You are free to use, modify, and
-distribute the code, subject to the terms in `LICENSE`. Third-party
-components (HippoRAG2, IRCoT, Whisper, SeamlessM4T, spaCy, RapidFuzz,
-etc.) retain their own licenses.
+distribute it subject to the terms in `LICENSE`.
+
+### Underlying datasets
+
+The benchmarks are not redistributed here. Their questions and answers,
+which appear in the released transcripts, remain under their original
+terms:
+
+| Dataset | License |
+|---|---|
+| [HotpotQA](https://hotpotqa.github.io/) | CC BY-SA 4.0 |
+| [2WikiMultiHopQA](https://github.com/Alab-NII/2wikimultihop) | Apache-2.0 |
+| [MuSiQue](https://github.com/StonyBrookNLP/musique) | CC BY 4.0 |
+| [Nigerian-accented English speech](https://huggingface.co/datasets/benjaminogbonna/nigerian_accented_english_dataset) | Apache-2.0 |
+
+The published transcript dataset carries **CC BY-SA 4.0**, inherited from
+HotpotQA's ShareAlike term, which propagates to derivative works.
+
+### Services
+
+| Service | Used for | Terms |
+|---|---|---|
+| Microsoft Edge TTS | Speech synthesis | [Microsoft Terms of Use](https://www.microsoft.com/en-us/legal/terms-of-use) |
+| OpenAI API | Answer generation, embeddings | [OpenAI Terms of Use](https://openai.com/policies/terms-of-use) |
+
+Synthesized audio is not redistributed. It can be regenerated locally with
+`data/build_dataset.py`, subject to the service terms above.
+
+### Third-party components
+
+HippoRAG2, IRCoT, Whisper, SeamlessM4T, spaCy, RapidFuzz and the remaining
+dependencies retain their own licenses.
