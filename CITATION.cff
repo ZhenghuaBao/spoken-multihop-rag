@@ -12,7 +12,7 @@ authors:
     given-names: Zhenghua
     email: zheng.hua.b@gmail.com
     affiliation: Continuum AI
-repository-code: https://github.com/ZhenghuaBao/spoken-multihop-rag
+repository-code: https://github.com/Continuum-AI-Corp/spoken-multihop-rag
 license: Apache-2.0
 keywords:
   - retrieval-augmented-generation

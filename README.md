@@ -7,7 +7,7 @@ _Better Retrieval, Worse Robustness: How Multi-hop RAG Amplifies Upstream ASR Er
 EMNLP 2026, Main Conference
 
 [![arXiv](https://img.shields.io/badge/arXiv-2608.22872-b31b1b.svg)](https://arxiv.org/abs/2608.22872)
-[![Dataset](https://img.shields.io/badge/🤗%20Dataset-spoken--multihop--rag-yellow.svg)](https://huggingface.co/datasets/KingZ23/spoken-multihop-rag)
+[![Dataset](https://img.shields.io/badge/🤗%20Dataset-spoken--multihop--rag-yellow.svg)](https://huggingface.co/datasets/orcarouter/spoken-multihop-rag)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10+-green.svg)](https://python.org)
 [![Whisper](https://img.shields.io/badge/ASR-Whisper--large--v3-orange.svg)](https://github.com/openai/whisper)
@@ -91,7 +91,7 @@ version and drop the `note` field.
 ### Setup
 
 ```bash
-git clone https://github.com/ZhenghuaBao/spoken-multihop-rag.git
+git clone https://github.com/Continuum-AI-Corp/spoken-multihop-rag.git
 cd spoken-multihop-rag
 
 pip install -r requirements.txt
