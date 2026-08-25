@@ -69,14 +69,14 @@ version and drop the `note` field.
 
 - **🔁 Structural amplification**: more sophisticated retrieval
   (graph + iterative) widens the Oracle-to-accent F1 gap by
-  $36\%$–$67\%$ relative to naive dense retrieval, on all three
+  36%–67% relative to naive dense retrieval, on all three
   benchmarks.
 - **🏷️ Entity corruption dominates**: corruption of one or more named
   entities is the dominant degradation category across all four
-  retrieval configurations, at $87\%$–$96\%$ on 2WikiMultiHopQA,
-  $67\%$–$82\%$ on HotpotQA, and $54\%$–$78\%$ on MuSiQue.
+  retrieval configurations, at 87%–96% on 2WikiMultiHopQA,
+  67%–82% on HotpotQA, and 54%–78% on MuSiQue.
 - **🧪 Mitigation diagnostics**: N-best Decoding recovers ~0% of the
-  gap; phonetic correction recovers $4\%$–$11\%$, preferentially on
+  gap; phonetic correction recovers 4%–11%, preferentially on
   graph-based methods. Together they isolate the residual to
   structural rather than stochastic or surface-level error.
 
