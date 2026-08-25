@@ -111,7 +111,7 @@ The pipeline uses `gpt-4o-mini` for answer generation and
 
 ## 🚀 Quick Start
 
-Run the main $48$-cell evaluation table for one benchmark:
+Run the main 48-cell evaluation table for one benchmark:
 
 ```bash
 python experiments/run_2x2.py \
@@ -214,7 +214,7 @@ strings.
 
 | Paper artifact | Script |
 |---|---|
-| Table 1 stats ($p$-values, CIs) | `bootstrap_significance.py` |
+| Table 1 stats (p-values, CIs) | `bootstrap_significance.py` |
 | Table 2 (Error-type distribution per accent) | `error_type_distribution.py` |
 | Table 3 (Mitigation: top-1 / N-best / Phonetic) | `mitigation_table.py` |
 | Table 8 (Entity corruption per method and accent) | `cross_method_entity_table.py` |
@@ -252,13 +252,13 @@ Key parameters (defaults match the paper):
 |---|---|---|
 | LLM model | `gpt-4o-mini` | `run_2x2.py --llm-model` |
 | Embedding model | `text-embedding-3-small` | `run_2x2.py --embed-model` |
-| Retrieval top-$k$ | $10$ | `run_2x2.py --top-k` |
-| IRCoT depth | $3$ | `run_2x2.py --ircot-steps` |
-| HippoRAG2 damping | $0.5$ | Inside `retrieval/hipporag.py` |
-| Phonetic Jaccard min | $0.4$ | `phonetic_correction_v2.py --jaccard` |
-| Phonetic edit threshold | $75$ | `--edit-thresh` |
-| Full-corpus fallback threshold | $85$ | `--fallback-thresh` |
-| Bootstrap resamples | $10{,}000$ | `bootstrap_significance.py --n-resamples` |
+| Retrieval top-k | 10 | `run_2x2.py --top-k` |
+| IRCoT depth | 3 | `run_2x2.py --ircot-steps` |
+| HippoRAG2 damping | 0.5 | Inside `retrieval/hipporag.py` |
+| Phonetic Jaccard min | 0.4 | `phonetic_correction_v2.py --jaccard` |
+| Phonetic edit threshold | 75 | `--edit-thresh` |
+| Full-corpus fallback threshold | 85 | `--fallback-thresh` |
+| Bootstrap resamples | 10,000 | `bootstrap_significance.py --n-resamples` |
 
 ## 🙏 Acknowledgments
 

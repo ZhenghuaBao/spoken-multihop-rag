@@ -20,7 +20,7 @@ Two subpackages:
 
 | Paper artifact | Script | One-line invocation |
 |---|---|---|
-| Table 1 stats ($p$-values, 95% CIs, amplification contrast) | `bootstrap_significance.py` | `python evaluation/scripts/bootstrap_significance.py --results results/2wiki_1000.json --n-resamples 10000` |
+| Table 1 stats (p-values, 95% CIs, amplification contrast) | `bootstrap_significance.py` | `python evaluation/scripts/bootstrap_significance.py --results results/2wiki_1000.json --n-resamples 10000` |
 | Table 2 (Error-type distribution within degradation cases, per accent) | `error_type_distribution.py` | `python evaluation/scripts/error_type_distribution.py --error-analysis results/error_analysis_2wiki_all.json --cell A --dataset-name 2WikiMultiHopQA` |
 | Table 8 (entity corruption per method and accent) | `cross_method_entity_table.py` | `python evaluation/scripts/cross_method_entity_table.py` |
 | Appendix E (entity corruption, real NG vs synthetic NG) | `entity_corruption_analysis.py` | `python evaluation/scripts/entity_corruption_analysis.py` |
@@ -42,9 +42,8 @@ Two subpackages:
   `error_analysis_<benchmark>_all_methods.json` per benchmark, each
   produced by `core/error_analysis.py --cross-method`. It prints both a
   plain-text table and the LaTeX for Table 8.
-- `bootstrap_significance.py` takes ~30 s for $n{=}10{,}000$
-  resamples on 1000 questions; CI numbers are deterministic given the
-  default seed (`42`).
+- `bootstrap_significance.py` takes ~30 s for n=10,000 resamples on 1000
+  questions. CI numbers are deterministic given the default seed (`42`).
 - `real_speech_validation.py` is the only script that requires a GPU
   (loads Whisper-large-v3 for re-transcribing the public real-NG
   corpus); the rest are CPU-only.
